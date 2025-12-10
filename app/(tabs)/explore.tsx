@@ -1,112 +1,165 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from "react";
+import { ScrollView, StyleSheet } from "react-native";
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { Trip } from "@/constants/trips";
+import { useTrips } from "@/hooks/use-trips";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export default function TabTwoScreen() {
+function getTripDurationInDays(trip: Trip): number {
+  const start = new Date(trip.startDate);
+  const end = new Date(trip.endDate);
+  const diffMs = end.getTime() - start.getTime();
+  // +1 pour inclure le jour de début
+  return Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1);
+}
+
+export default function ExplorerScreen() {
+  const { trips } = useTrips();
+  const insets = useSafeAreaInsets();
+
+  const totalTrips = trips.length;
+  const totalDays = trips.reduce((sum, trip) => sum + getTripDurationInDays(trip), 0);
+
+  const today = new Date();
+
+  const upcomingTrips = trips.filter(
+    (trip) => new Date(trip.startDate) > today
+  );
+
+  const nextTrip = upcomingTrips.sort(
+    (a, b) =>
+      new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+  )[0];
+
+  const longestTrip =
+    trips.slice().sort(
+      (a, b) => getTripDurationInDays(b) - getTripDurationInDays(a)
+    )[0];
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
+    <ScrollView
+      contentContainerStyle={[
+        styles.container,
+        { paddingTop: insets.top + 8 },
+      ]}
+    >
+      <ThemedText type="title" style={styles.heading}>
+        Explorer
+      </ThemedText>
+
+      <ThemedText style={styles.subHeading}>
+        Un aperçu de tes aventures.
+      </ThemedText>
+
+      {/* Stats principales */}
+      <ThemedView style={styles.cardRow}>
+        <ThemedView style={styles.statCard}>
+          <ThemedText type="subtitle">Voyages</ThemedText>
+          <ThemedText type="title">{totalTrips}</ThemedText>
+        </ThemedView>
+
+        <ThemedView style={styles.statCard}>
+          <ThemedText type="subtitle">Jours en voyage</ThemedText>
+          <ThemedText type="title">{totalDays}</ThemedText>
+        </ThemedView>
       </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
+
+      {/* Prochain voyage */}
+      <ThemedView style={styles.card}>
+        <ThemedText type="subtitle">Prochain voyage</ThemedText>
+        {nextTrip ? (
+          <>
+            <ThemedText type="defaultSemiBold">
+              {nextTrip.title}
             </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+            <ThemedText>{nextTrip.country}</ThemedText>
+            <ThemedText style={styles.mutedText}>
+              {nextTrip.startDate} → {nextTrip.endDate}
+            </ThemedText>
+          </>
+        ) : (
+          <ThemedText style={styles.mutedText}>
+            Aucun voyage à venir pour le moment.
+          </ThemedText>
+        )}
+      </ThemedView>
+
+      {/* Voyage le plus long */}
+      <ThemedView style={styles.card}>
+        <ThemedText type="subtitle">Voyage le plus long</ThemedText>
+        {longestTrip ? (
+          <>
+            <ThemedText type="defaultSemiBold">
+              {longestTrip.title}
+            </ThemedText>
+            <ThemedText>{longestTrip.country}</ThemedText>
+            <ThemedText style={styles.mutedText}>
+              {getTripDurationInDays(longestTrip)} jours
+            </ThemedText>
+          </>
+        ) : (
+          <ThemedText style={styles.mutedText}>
+            Ajoute un voyage pour voir cette statistique.
+          </ThemedText>
+        )}
+      </ThemedView>
+
+      {/* Petit résumé */}
+      <ThemedView style={styles.card}>
+        <ThemedText type="subtitle">Résumé</ThemedText>
+        {totalTrips === 0 ? (
+          <ThemedText>
+            Commence par ajouter ton premier voyage dans l’onglet
+            <ThemedText type="defaultSemiBold"> Voyages</ThemedText>.
+          </ThemedText>
+        ) : (
+          <ThemedText>
+            Tu as déjà enregistré {totalTrips} voyage(s) pour un total de{' '}
+            {totalDays} jours sur les routes. Continue à explorer le monde !
+          </ThemedText>
+        )}
+      </ThemedView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+    gap: 12,
   },
-  titleContainer: {
+  heading: {
+    marginBottom: 4,
+  },
+  subHeading: {
+    marginBottom: 12,
+    fontSize: 12,
+    opacity: 0.8,
+  },
+  cardRow: {
     flexDirection: 'row',
     gap: 8,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#374151',
+    gap: 4,
+  },
+  card: {
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#374151',
+    gap: 4,
+  },
+  mutedText: {
+    fontSize: 12,
+    opacity: 0.7,
   },
 });
