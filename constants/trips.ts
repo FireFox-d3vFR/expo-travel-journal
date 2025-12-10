@@ -1,9 +1,16 @@
+export type TripNote = {
+    id: string;
+    date: string;
+    text: string;
+}
+
 export type Trip = {
     id: string;
     title: string;
     country: string;
     startDate: string;
     endDate: string;
+    notes?: TripNote[];
 };
 
 export const MOCK_TRIPS: Trip[] = [
@@ -13,6 +20,13 @@ export const MOCK_TRIPS: Trip[] = [
     country: 'Islande',
     startDate: '2024-06-10',
     endDate: '2024-06-20',
+    notes: [
+      {
+        id: 'n1',
+        date: '2024-06-11',
+        text: 'Arrivée à Reykjavik, balade dans le centre-ville.',
+      },
+    ],
   },
   {
     id: '2',
@@ -20,5 +34,12 @@ export const MOCK_TRIPS: Trip[] = [
     country: 'Japon',
     startDate: '2023-04-02',
     endDate: '2023-04-15',
+    notes: [
+      {
+        id: 'n2',
+        date: '2023-04-03',
+        text: 'Visite du quartier d’Asakusa et du temple Sensō-ji.',
+      },
+    ],
   },
 ];
