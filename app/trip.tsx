@@ -4,7 +4,7 @@ import { useLocalSearchParams, Stack } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MOCK_TRIPS } from '@/constants/trips';
+import { useTrips } from '@/hooks/use-trips';
 
 /**
  * Photos mockées pour les voyages.
@@ -27,16 +27,12 @@ export default function TripDetailScreen() {
   const params = useLocalSearchParams();
   const tripId = params.id as string | undefined;
 
-  const trip = MOCK_TRIPS.find((t) => t.id === tripId);
+  const { trips } = useTrips();
+  const trip = trips.find((t) => t.id === tripId);
 
-  // On peut configurer le header ici (titre dynamique)
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: trip ? trip.title : 'Voyage',
-        }}
-      />
+      <Stack.Screen options={{ title: trip ? trip.title : 'Voyage' }} />
       <ThemedView style={styles.container}>
         {!trip ? (
           <ThemedText>Voyage introuvable.</ThemedText>

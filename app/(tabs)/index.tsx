@@ -1,11 +1,13 @@
-import React from 'react';
-import { FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
+import React from 'react';
+import { FlatList, Pressable, StyleSheet, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Trip, MOCK_TRIPS } from '@/constants/trips';
+import { Trip } from '@/constants/trips';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTrips } from '@/hooks/use-trips';
 
 /**
  * Onglet "Voyages" : liste des trips.
@@ -13,7 +15,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
  * plus tard on se branchera sur une API / backend.
  */
 export default function TripsListScreen() {
+  const { trips } = useTrips();
   const colorSheme = useColorScheme();
+  const insets = useSafeAreaInsets();
 
   const renderItem = ({ item }: { item: Trip }) => (
     <TouchableOpacity
@@ -38,12 +42,23 @@ export default function TripsListScreen() {
   );
 
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText type="title" style={styles.heading}>
-        Mes voyages
-      </ThemedText>
+    <ThemedView
+      style={[
+        styles.container,
+        { paddingTop: insets.top + 8 },
+      ]}
+    >
+      <ThemedView style={styles.headerRow}>
+        <ThemedText type="title" style={styles.heading}>
+          Mes voyages
+        </ThemedText>
+        <Pressable onPress={() => router.push('/trip-new')}>
+          <ThemedText type="link">+ Ajouter</ThemedText>
+        </Pressable>
+      </ThemedView>
+
       <FlatList
-        data={MOCK_TRIPS}
+        data={trips}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
@@ -52,16 +67,19 @@ export default function TripsListScreen() {
   );
 }
 
-// Styles simples, façon "bootstrap" (pas de gros fichiers de thème)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 12,
   },
-  heading: {
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 12,
   },
+  heading: {},
   listContent: {
     paddingBottom: 16,
   },
@@ -69,7 +87,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 10,
     borderRadius: 8,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#ffffff', // clair
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -77,7 +95,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   tripCardDark: {
-    backgroundColor: '#111827',
+    backgroundColor: '#111827', // foncé pour dark mode
   },
   tripTitle: {
     marginBottom: 4,
