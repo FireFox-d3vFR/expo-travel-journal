@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
 import React from 'react';
-import { FlatList, Pressable, StyleSheet, TouchableOpacity } from 'react-native';
+import { FlatList, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CountryFlag } from '@/components/country-flag';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Trip } from '@/constants/trips';
@@ -31,13 +32,30 @@ export default function TripsListScreen() {
           params: { id: item.id },
         })
       }>
-      <ThemedText type="defaultSemiBold" style={styles.tripTitle}>
-        {item.title}
-      </ThemedText>
-      <ThemedText style={styles.tripSubtitle}>{item.country}</ThemedText>
-      <ThemedText style={styles.tripDates}>
-        {item.startDate} → {item.endDate}
-      </ThemedText>
+      <View style={styles.cardRow}>
+        <View style={styles.cardText}>
+          <ThemedText type="defaultSemiBold" style={styles.tripTitle}>
+            {item.title}
+          </ThemedText>
+          <View style={styles.countryRow}>
+            <ThemedText style={styles.tripSubtitle}>{item.country}</ThemedText>
+            {item.isRoadtrip && (
+              <View style={styles.roadtripBadge}>
+                <ThemedText style={styles.roadtripBadgeText}>Roadtrip</ThemedText>
+              </View>
+            )}
+          </View>
+          <ThemedText style={styles.tripDates}>
+            {item.startDate} → {item.endDate}
+          </ThemedText>
+        </View>
+
+        <CountryFlag
+          countryCode={item.countryCode}
+          countryName={item.country}
+          size={40}
+        />
+      </View>
     </TouchableOpacity>
   );
 
@@ -96,6 +114,33 @@ const styles = StyleSheet.create({
   },
   tripCardDark: {
     backgroundColor: '#111827', // foncé pour dark mode
+  },
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  cardText: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  countryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  roadtripBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: '#2563EB',
+  },
+  roadtripBadgeText: {
+    fontSize: 10,
+    textTransform: 'uppercase',
   },
   tripTitle: {
     marginBottom: 4,

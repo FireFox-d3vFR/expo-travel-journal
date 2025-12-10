@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
-import { Button, FlatList, Image, ScrollView, StyleSheet, TextInput } from 'react-native';
+import { Button, FlatList, Image, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -64,6 +64,15 @@ export default function TripDetailScreen() {
             {/* Infos principales */}
             <ThemedText type="title">{trip.title}</ThemedText>
             <ThemedText style={styles.country}>{trip.country}</ThemedText>
+            {trip.cities && trip.cities.length > 0 && (
+              <View style={styles.citiesContainer}>
+                {trip.cities.map((city) => (
+                  <View key={city} style={styles.cityChip}>
+                    <ThemedText style={styles.cityChipText}>{city}</ThemedText>
+                  </View>
+                ))}
+              </View>
+            )}
             <ThemedText style={styles.dates}>
               {trip.startDate} → {trip.endDate}
             </ThemedText>
@@ -140,6 +149,29 @@ const styles = StyleSheet.create({
   },
   country: {
     marginTop: 4,
+  },
+  citiesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  cityChip: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#4B5563',
+  },
+  cityChipText: {
+    fontSize: 12,
+  },
+  cities: {
+    marginTop: 4,
+    marginBottom: 4,
+    fontSize: 12,
+    opacity: 0.9,
   },
   dates: {
     marginTop: 4,
