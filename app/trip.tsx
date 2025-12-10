@@ -1,16 +1,28 @@
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
-import { Button, FlatList, Image, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import {
+  Alert,
+  Button,
+  FlatList,
+  Image,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Activity } from '@/constants/trips';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTrips } from '@/hooks/use-trips';
 
-/**
- * Photos mockées pour les voyages.
- * Plus tard, on les récupérera depuis l'API.
- */
 const MOCK_PHOTOS = [
   {
     id: 'p1',
@@ -28,18 +40,81 @@ function formatToday() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function formatDate(date: Date | null) {
+  if (!date) return '';
+  return date.toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+function formatTime(date: Date | null) {
+  if (!date) return;
+  const h = String(date.getHours()).padStart(2, '0');
+  const m = String(date.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+function parseTimeToDate(time?: string): Date | null {
+  if (!time) return null;
+  const [h, m] = time.split(':').map(Number);
+  const d = new Date();
+  d.setHours(h || 0, m || 0, 0, 0);
+  return d;
+}
+
+type ActivityStatus = 'past' | 'today' | 'upcoming';
+
+function getActivityStatus(dateStr: string): ActivityStatus {
+  const today = new Date();
+  const activityDate = new Date(dateStr);
+
+  // On normalise pour comparer "date" sans l'heure
+  today.setHours(0, 0, 0, 0);
+  activityDate.setHours(0, 0, 0, 0);
+
+  if (activityDate.getTime() === today.getTime()) {
+    return 'today';
+  }
+  if (activityDate.getTime() < today.getTime()) {
+    return 'past';
+  }
+  return 'upcoming';
+}
+
+function formatActivityDay(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 export default function TripDetailScreen() {
   const params = useLocalSearchParams();
   const tripId = params.id as string | undefined;
 
-  const { trips, addTripNote } = useTrips();
+  const { trips, addTripNote, addActivity, updateActivity, deleteActivity } =
+    useTrips();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
   const trip = trips.find((t) => t.id === tripId);
   const notes = trip?.notes ?? [];
+  const activities = trip?.activities ?? [];
 
+  // Journal de bord
   const [noteText, setNoteText] = useState('');
+
+  // Activités - modal
+  const [activityModalVisible, setActivityModalVisible] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+  const [activityTitle, setActivityTitle] = useState('');
+  const [activityLocation, setActivityLocation] = useState('');
+  const [activityDescription, setActivityDescription] = useState('');
+  const [activityDate, setActivityDate] = useState<Date | null>(null);
+  const [activityTime, setActivityTime] = useState<Date | null>(null);
+  const [showActivityDatePicker, setShowActivityDatePicker] = useState(false);
+  const [showActivityTimePicker, setShowActivityTimePicker] = useState(false);
 
   const handleAddNote = () => {
     if (!trip || !noteText.trim()) return;
@@ -50,6 +125,100 @@ export default function TripDetailScreen() {
     });
     setNoteText('');
   };
+
+  const openCreateActivity = () => {
+    if (!trip) return;
+
+    setEditingActivity(null);
+    setActivityTitle('');
+    setActivityLocation('');
+    setActivityDescription('');
+    setActivityDate(new Date(trip.startDate));
+    setActivityTime(null);
+    setActivityModalVisible(true);
+  };
+
+  const openEditActivity = (activity: Activity) => {
+    setEditingActivity(activity);
+    setActivityTitle(activity.title);
+    setActivityLocation(activity.location ?? '');
+    setActivityDescription(activity.description ?? '');
+    setActivityDate(activity.date ? new Date(activity.date) : new Date());
+    setActivityTime(parseTimeToDate(activity.time));
+    setActivityModalVisible(true);
+  };
+
+  const handleSaveActivity = () => {
+    if (!trip) return;
+
+    const dateStr = formatDate(activityDate);
+    const timeStr = formatTime(activityTime);
+
+    if (!activityTitle.trim() || !dateStr) {
+      Alert.alert(
+        'Champs manquants',
+        'Merci de renseigner au minimum un titre et une date.'
+      );
+      return;
+    }
+
+    const payload = {
+      title: activityTitle.trim(),
+      date: dateStr,
+      time: timeStr,
+      location: activityLocation.trim() || undefined,
+      description: activityDescription.trim() || undefined,
+    };
+
+    if (editingActivity) {
+      updateActivity(trip.id, editingActivity.id, payload);
+    } else {
+      addActivity(trip.id, payload);
+    }
+
+    setActivityModalVisible(false);
+  };
+
+  const handleDeleteActivity = (activity: Activity) => {
+    if (!trip) return;
+
+    Alert.alert(
+      'Supprimer cette activité ?',
+      `“${activity.title}” sera définitivement supprimée.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: () => deleteActivity(trip.id, activity.id),
+        },
+      ]
+    );
+  };
+
+  const sortedActivities = [...activities].sort((a, b) => {
+    const aDate = new Date(
+      `${a.date}T${a.time ? a.time : '00:00'}`
+    ).getTime();
+    const bDate = new Date(
+      `${b.date}T${b.time ? b.time : '00:00'}`
+    ).getTime();
+    return aDate - bDate;
+  });
+
+  const groupedActivities = sortedActivities.reduce<
+    { date: string; label: string, items: Activity[] }[]
+  >((groups, activity) => {
+    const existing = groups.find((g) => g.date === activity.date);
+    const label = formatActivityDay(activity.date);
+
+    if (existing) {
+      existing.items.push(activity);
+    } else {
+      groups.push({ date: activity.date, label, items: [activity] });
+    }
+    return groups;
+  }, []);
 
   return (
     <>
@@ -63,23 +232,29 @@ export default function TripDetailScreen() {
           <ThemedView style={styles.container}>
             {/* Infos principales */}
             <ThemedText type="title">{trip.title}</ThemedText>
-            <ThemedText style={styles.country}>{trip.country}</ThemedText>
+            <ThemedText style={styles.country}>📍 {trip.country}</ThemedText>
+
             {trip.cities && trip.cities.length > 0 && (
-              <View style={styles.citiesContainer}>
-                {trip.cities.map((city) => (
-                  <View key={city} style={styles.cityChip}>
-                    <ThemedText style={styles.cityChipText}>{city}</ThemedText>
-                  </View>
-                ))}
+              <View style={styles.citiesSection}>
+                <ThemedText style={styles.citiesLabel}>Étapes</ThemedText>
+                <View style={styles.citiesContainer}>
+                  {trip.cities.map((city) => (
+                    <View key={city} style={styles.cityChip}>
+                      <ThemedText style={styles.cityChipText}>{city}</ThemedText>
+                    </View>
+                  ))}
+                </View>
               </View>
             )}
+
+
             <ThemedText style={styles.dates}>
               {trip.startDate} → {trip.endDate}
             </ThemedText>
 
             {/* Photos */}
             <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Photos
+              📷 Photos
             </ThemedText>
             <FlatList
               data={MOCK_PHOTOS}
@@ -94,14 +269,113 @@ export default function TripDetailScreen() {
               )}
             />
 
+            {/* Activités */}
+            <View style={styles.sectionHeaderRow}>
+              <ThemedText type="subtitle">📆 Activités</ThemedText>
+              <Pressable onPress={openCreateActivity}>
+                <ThemedText type="link"> Ajouter</ThemedText>
+              </Pressable>
+            </View>
+
+            {groupedActivities.length === 0 ? (
+              <ThemedText style={styles.emptyText}>
+                Aucune activité pour le moment. Ajoute la première étape de ton
+                voyage !
+              </ThemedText>
+            ) : (
+              groupedActivities.map((group) => (
+                <View key={group.date} style={styles.activityDayBlock}>
+                  <ThemedText style={styles.activityDayTitle}>
+                    {group.label}
+                  </ThemedText>
+
+                  {group.items.map((activity) => {
+                    const status = getActivityStatus(activity.date);
+
+                    return (
+                      <ThemedView key={activity.id} style={styles.activityCard}>
+                        <View style={styles.activityHeaderRow}>
+                          <ThemedText
+                            type="defaultSemiBold"
+                            style={styles.activityTitle}
+                          >
+                            {activity.title}
+                          </ThemedText>
+
+                          <View
+                            style={[
+                              styles.activityStatusBadge,
+                              status === 'today' && styles.activityStatusToday,
+                              status === 'upcoming' && styles.activityStatusUpcoming,
+                              status === 'past' && styles.activityStatusPast,
+                            ]}
+                          >
+                            <ThemedText style={styles.activityStatusText}>
+                              {status === 'today'
+                                ? "Aujourd'hui"
+                                : status === 'upcoming'
+                                ? 'À venir'
+                                : 'Passé'}
+                            </ThemedText>
+                          </View>
+                        </View>
+
+                        <ThemedText style={styles.activityMeta}>
+                          {activity.date}
+                          {activity.time ? ` · ${activity.time}` : ''}
+                        </ThemedText>
+                        {activity.location && (
+                          <ThemedText style={styles.activityMeta}>
+                            {activity.location}
+                          </ThemedText>
+                        )}
+                        {activity.description && (
+                          <ThemedText style={styles.activityDescription}>
+                            {activity.description}
+                          </ThemedText>
+                        )}
+
+                        <View style={styles.activityActionsRow}>
+                          <Pressable
+                            onPress={() => openEditActivity(activity)}
+                            style={styles.activityAction}
+                          >
+                            <ThemedText style={styles.activityActionText}>
+                              ✏️ Modifier
+                            </ThemedText>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => handleDeleteActivity(activity)}
+                            style={styles.activityAction}
+                          >
+                            <ThemedText style={styles.activityDeleteText}>
+                              🗑 Supprimer
+                            </ThemedText>
+                          </Pressable>
+                        </View>
+                      </ThemedView>
+                    );
+                  })}
+                </View>
+              ))
+            )}
+
             {/* Journal de bord */}
             <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Journal de bord
+              📒 Journal de bord
             </ThemedText>
+
+            {notes.length > 0 && (
+              <ThemedText style={styles.journalSummary}>
+                {notes.length} note{notes.length > 1 ? 's' : ''} enregistrée
+                {notes.length > 1 ? 's' : ''}
+              </ThemedText>
+            )}
 
             {notes.length === 0 ? (
               <ThemedText style={styles.emptyText}>
-                Aucune note pour le moment. Ajoute ta première impression de voyage !
+                Aucune note pour le moment. Ajoute ta première impression de
+                voyage !
               </ThemedText>
             ) : (
               notes.map((note) => (
@@ -133,6 +407,124 @@ export default function TripDetailScreen() {
           </ThemedView>
         </ScrollView>
       )}
+
+      {/* Modal activité */}
+      <Modal
+        visible={activityModalVisible}
+        animationType="slide"
+        onRequestClose={() => setActivityModalVisible(false)}
+      >
+        <ThemedView style={styles.modalContainer}>
+          <ThemedText type="title" style={styles.modalTitle}>
+            {editingActivity ? 'Modifier une activité' : 'Nouvelle activité'}
+          </ThemedText>
+
+          {trip && (
+            <ThemedText style={styles.modalSubtitle}>
+              Pour le voyage : {trip.title}
+            </ThemedText>
+          )}
+
+          <ThemedText>Titre</ThemedText>
+          <TextInput
+            style={[
+              styles.input,
+              styles.textInput,
+              isDark && styles.inputDark,
+              isDark && styles.textInputDark,
+            ]}
+            value={activityTitle}
+            onChangeText={setActivityTitle}
+            placeholder="Visite du musée..."
+            placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+          />
+
+          <ThemedText>Date</ThemedText>
+          <Pressable
+            onPress={() => setShowActivityDatePicker(true)}
+            style={[styles.input, isDark && styles.inputDark]}
+          >
+            <ThemedText>
+              {activityDate ? formatDate(activityDate) : 'Sélectionner une date'}
+            </ThemedText>
+          </Pressable>
+          {showActivityDatePicker && (
+            <DateTimePicker
+              value={activityDate || new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              minimumDate={trip ? new Date(trip.startDate) : undefined}
+              maximumDate={trip ? new Date(trip.endDate) : undefined}
+              onChange={(event: DateTimePickerEvent, date?: Date) => {
+                if (Platform.OS !== 'ios') setShowActivityDatePicker(false);
+                if (date) setActivityDate(date);
+              }}
+            />
+          )}
+
+          <ThemedText>Heure (optionnel)</ThemedText>
+          <Pressable
+            onPress={() => setShowActivityTimePicker(true)}
+            style={[styles.input, isDark && styles.inputDark]}
+          >
+            <ThemedText>
+              {activityTime ? formatTime(activityTime) : 'Sélectionner une heure'}
+            </ThemedText>
+          </Pressable>
+          {showActivityTimePicker && (
+            <DateTimePicker
+              value={activityTime || new Date()}
+              mode="time"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event: DateTimePickerEvent, date?: Date) => {
+                if (Platform.OS !== 'ios') setShowActivityTimePicker(false);
+                if (date) setActivityTime(date);
+              }}
+            />
+          )}
+
+          <ThemedText>Lieu (optionnel)</ThemedText>
+          <TextInput
+            style={[
+              styles.input,
+              styles.textInput,
+              isDark && styles.inputDark,
+              isDark && styles.textInputDark,
+            ]}
+            value={activityLocation}
+            onChangeText={setActivityLocation}
+            placeholder="Ville, lieu précis..."
+            placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+          />
+
+          <ThemedText>Description (optionnel)</ThemedText>
+          <TextInput
+            style={[
+              styles.input,
+              styles.textInput,
+              isDark && styles.inputDark,
+              isDark && styles.textInputDark,
+              { minHeight: 60, textAlignVertical: 'top' },
+            ]}
+            value={activityDescription}
+            onChangeText={setActivityDescription}
+            placeholder="Détails sur l’activité..."
+            placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+            multiline
+          />
+
+          <View style={styles.modalButtonsRow}>
+            <Button
+              title="Annuler"
+              onPress={() => setActivityModalVisible(false)}
+            />
+            <Button
+              title={editingActivity ? 'Enregistrer' : 'Ajouter'}
+              onPress={handleSaveActivity}
+            />
+          </View>
+        </ThemedView>
+      </Modal>
     </>
   );
 }
@@ -167,12 +559,6 @@ const styles = StyleSheet.create({
   cityChipText: {
     fontSize: 12,
   },
-  cities: {
-    marginTop: 4,
-    marginBottom: 4,
-    fontSize: 12,
-    opacity: 0.9,
-  },
   dates: {
     marginTop: 4,
     marginBottom: 16,
@@ -183,6 +569,48 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  activityDayBlock: {
+    marginBottom: 12,
+  },
+  activityDayTitle: {
+    fontSize: 13,
+    opacity: 0.8,
+    marginBottom: 4,
+    textTransform: 'capitalize',
+  },
+  activityHeaderRow: {
+   flexDirection: 'row',
+   alignItems: 'center',
+   justifyContent: 'space-between',
+   gap: 8,
+ },
+  activityStatusBadge: {
+   borderRadius: 999,
+   paddingHorizontal: 8,
+   paddingVertical: 2,
+   borderWidth: 1,
+   borderColor: '#4B5563',
+ },
+ activityStatusText: {
+   fontSize: 10,
+   textTransform: 'uppercase',
+ },
+ activityStatusToday: {
+   borderColor: '#22c55e',
+ },
+ activityStatusUpcoming: {
+   borderColor: '#3b82f6',
+ },
+ activityStatusPast: {
+   borderColor: '#6b7280',
+ },
   photoCard: {
     marginRight: 12,
     width: 220,
@@ -200,6 +628,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.7,
     marginBottom: 8,
+  },
+  activityCard: {
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#374151',
+    gap: 2,
+  },
+  activityTitle: {
+    marginBottom: 2,
+  },
+  activityMeta: {
+    fontSize: 12,
+    opacity: 0.8,
+  },
+  activityDescription: {
+    marginTop: 4,
+    fontSize: 12,
+  },
+  activityActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 16,
+    marginTop: 6,
+  },
+  activityAction: {
+    paddingVertical: 4,
+  },
+  activityActionText: {
+    fontSize: 12,
+  },
+  activityDeleteText: {
+    fontSize: 12,
+    color: '#f97373',
   },
   noteCard: {
     borderRadius: 8,
@@ -224,8 +687,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderColor: '#D1D5DB',
     backgroundColor: '#FFFFFF',
-    minHeight: 60,
-    textAlignVertical: 'top',
   },
   inputDark: {
     borderColor: '#4B5563',
@@ -236,5 +697,40 @@ const styles = StyleSheet.create({
   },
   textInputDark: {
     color: '#F9FAFB',
+  },
+  modalContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 32,
+    paddingBottom: 16,
+    gap: 8,
+  },
+  modalTitle: {
+    marginBottom: 12,
+  },
+  modalSubtitle: {
+    marginBottom: 12,
+    opacity: 0.8,
+    fontSize: 14,
+  },
+  modalButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 8,
+  },
+    citiesSection: {
+    marginTop: 6,
+    marginBottom: 4,
+    gap: 4,
+  },
+  citiesLabel: {
+    fontSize: 12,
+    opacity: 0.8,
+  },
+  journalSummary: {
+    fontSize: 12,
+    opacity: 0.7,
+    marginBottom: 8,
   },
 });

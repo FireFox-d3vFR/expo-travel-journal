@@ -4,6 +4,15 @@ export type TripNote = {
     text: string;
 }
 
+export type Activity = {
+    id: string;
+    title: string;
+    date: string;
+    time?: string;
+    location?: string;
+    description?: string;
+}
+
 export type Trip = {
     id: string;
     title: string;
@@ -14,6 +23,7 @@ export type Trip = {
     isRoadtrip?: boolean;
     cities?: string[];
     notes?: TripNote[];
+    activities?: Activity[];
 };
 
 export const MOCK_TRIPS: Trip[] = [
@@ -31,6 +41,22 @@ export const MOCK_TRIPS: Trip[] = [
         text: 'Arrivée à Reykjavik, balade dans le centre-ville.',
       },
     ],
+    activities: [
+      {
+        id: 'a1',
+        title: 'Blue Lagoon',
+        date: '2024-06-11',
+        time: '10:00',
+        location: 'Grindavík',
+      },
+      {
+        id: 'a2',
+        title: 'Randonnée au Skaftafell',
+        date: '2024-06-13',
+        time: '09:00',
+        location: 'Parc national du Vatnajökull',
+      },
+    ],
   },
   {
     id: '2',
@@ -46,6 +72,15 @@ export const MOCK_TRIPS: Trip[] = [
         text: 'Visite du quartier d’Asakusa et du temple Sensō-ji.',
       },
     ],
+    activities: [
+      {
+        id: 'a3',
+        title: 'Visite du Fushimi Inari',
+        date: '2023-04-06',
+        time: '14:00',
+        location: 'Kyoto',
+      },
+    ],
   },
   {
     id: '3',
@@ -53,9 +88,10 @@ export const MOCK_TRIPS: Trip[] = [
     country: 'France',
     countryCode: 'FR',
     startDate: '2026-01-01',
-    endDate: '2025-12-23',
+    endDate: '2026-01-23',
     isRoadtrip: true,
     cities: ['Paris', 'Lyon', 'Marseille'],
     notes: [],
+    activities: [],
   }
 ];
