@@ -21,6 +21,7 @@ export type Trip = {
     startDate: string;
     endDate: string;
     isRoadtrip?: boolean;
+    isFavorite?: boolean;
     cities?: string[];
     notes?: TripNote[];
     activities?: Activity[];
@@ -34,6 +35,9 @@ export const MOCK_TRIPS: Trip[] = [
     countryCode: 'IS',
     startDate: '2024-06-10',
     endDate: '2024-06-20',
+    isRoadtrip: false,
+    isFavorite: true,
+    cities: [],
     notes: [
       {
         id: 'n1',
@@ -65,6 +69,9 @@ export const MOCK_TRIPS: Trip[] = [
     countryCode: 'JP',
     startDate: '2023-04-02',
     endDate: '2023-04-15',
+    isRoadtrip: false,
+    isFavorite: false,
+    cities: [],
     notes: [
       {
         id: 'n2',
@@ -84,13 +91,27 @@ export const MOCK_TRIPS: Trip[] = [
   },
   {
     id: '3',
-    title: 'Baguette',
+    title: 'Baguette in Paris',
     country: 'France',
     countryCode: 'FR',
     startDate: '2026-01-01',
     endDate: '2026-01-23',
     isRoadtrip: true,
+    isFavorite: true,
     cities: ['Paris', 'Lyon', 'Marseille'],
+    notes: [],
+    activities: [],
+  },
+  {
+    id: '4',
+    title: 'Vamos a España',
+    country: 'Espagne',
+    countryCode: 'ES',
+    startDate: '2025-12-10',
+    endDate: '2025-12-24',
+    isRoadtrip: true,
+    isFavorite: false,
+    cities: ['Madrid', 'Barcelone', 'Séville'],
     notes: [],
     activities: [],
   }

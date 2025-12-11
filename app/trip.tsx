@@ -66,7 +66,6 @@ function getActivityStatus(dateStr: string): ActivityStatus {
   const today = new Date();
   const activityDate = new Date(dateStr);
 
-  // On normalise pour comparer "date" sans l'heure
   today.setHours(0, 0, 0, 0);
   activityDate.setHours(0, 0, 0, 0);
 
@@ -89,18 +88,61 @@ function formatActivityDay(dateStr: string): string {
   });
 }
 
+// ✅ statut d’un voyage (Terminé / En cours / À venir)
+type TripStatus = 'past' | 'current' | 'upcoming';
+
+function getTripStatus(trip: { startDate: string; endDate: string }): TripStatus {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const start = new Date(trip.startDate);
+  const end = new Date(trip.endDate);
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+
+  if (end < today) return 'past';
+  if (start > today) return 'upcoming';
+  return 'current';
+}
+
+function getTripStatusLabel(status: TripStatus) {
+  switch (status) {
+    case 'past':
+      return 'Terminé';
+    case 'current':
+      return 'En cours';
+    case 'upcoming':
+      return 'À venir';
+  }
+}
+
 export default function TripDetailScreen() {
   const params = useLocalSearchParams();
   const tripId = params.id as string | undefined;
 
-  const { trips, addTripNote, updateTripNote, deleteTripNote, addActivity, updateActivity, deleteActivity } =
-    useTrips();
+  const {
+    trips,
+    addTripNote,
+    updateTripNote,
+    deleteTripNote,
+    addActivity,
+    updateActivity,
+    deleteActivity,
+    toggleFavorite,
+  } = useTrips();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
   const trip = trips.find((t) => t.id === tripId);
-  const notes = [...(trip?.notes ?? [])].sort((a, b) => b.date.localeCompare(a.date));
+  const notes = trip?.notes ?? [];
   const activities = trip?.activities ?? [];
+
+  // ✅ notes triées par date (la plus récente en haut)
+  const sortedNotes = [...notes].sort((a, b) =>
+    b.date.localeCompare(a.date)
+  );
+
+  const tripStatus = trip ? getTripStatus(trip) : null;
 
   // Journal de bord
   const [noteText, setNoteText] = useState('');
@@ -113,7 +155,6 @@ export default function TripDetailScreen() {
   const [noteFormDate, setNoteFormDate] = useState<Date | null>(null);
   const [showNoteDatePicker, setShowNoteDatePicker] = useState(false);
   const [noteFormText, setNoteFormText] = useState('');
-
 
   // Activités - modal
   const [activityModalVisible, setActivityModalVisible] = useState(false);
@@ -136,7 +177,7 @@ export default function TripDetailScreen() {
     setNoteText('');
   };
 
-    const openEditNote = (note: { id: string; date: string; text: string }) => {
+  const openEditNote = (note: { id: string; date: string; text: string }) => {
     setEditingNote(note);
     setNoteFormDate(new Date(note.date));
     setNoteFormText(note.text);
@@ -166,7 +207,11 @@ export default function TripDetailScreen() {
     setEditingNote(null);
   };
 
-  const handleDeleteNote = (note: { id: string; date: string; text: string }) => {
+  const handleDeleteNote = (note: {
+    id: string;
+    date: string;
+    text: string;
+  }) => {
     if (!trip) return;
 
     Alert.alert(
@@ -182,7 +227,6 @@ export default function TripDetailScreen() {
       ]
     );
   };
-
 
   const openCreateActivity = () => {
     if (!trip) return;
@@ -265,7 +309,7 @@ export default function TripDetailScreen() {
   });
 
   const groupedActivities = sortedActivities.reduce<
-    { date: string; label: string, items: Activity[] }[]
+    { date: string; label: string; items: Activity[] }[]
   >((groups, activity) => {
     const existing = groups.find((g) => g.date === activity.date);
     const label = formatActivityDay(activity.date);
@@ -289,8 +333,42 @@ export default function TripDetailScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <ThemedView style={styles.container}>
             {/* Infos principales */}
-            <ThemedText type="title">{trip.title}</ThemedText>
-            <ThemedText style={styles.country}>📍 {trip.country}</ThemedText>
+            <View style={styles.tripDetailHeaderRow}>
+              <ThemedText type="title">{trip.title}</ThemedText>
+
+              <Pressable
+                hitSlop={8}
+                onPress={() => toggleFavorite(trip.id)}
+              >
+                <ThemedText
+                  style={[
+                    styles.favoriteIcon,
+                    trip.isFavorite && styles.favoriteIconActive,
+                  ]}
+                >
+                  {trip.isFavorite ? '★' : '☆'}
+                </ThemedText>
+              </Pressable>
+            </View>
+
+            <View style={styles.detailMetaRow}>
+              <ThemedText style={styles.country}>📍 {trip.country}</ThemedText>
+
+              {tripStatus && (
+                <View
+                  style={[
+                    styles.statusBadge,
+                    tripStatus === 'current' && styles.statusBadgeCurrent,
+                    tripStatus === 'upcoming' && styles.statusBadgeUpcoming,
+                    tripStatus === 'past' && styles.statusBadgePast,
+                  ]}
+                >
+                  <ThemedText style={styles.statusBadgeText}>
+                    {getTripStatusLabel(tripStatus)}
+                  </ThemedText>
+                </View>
+              )}
+            </View>
 
             {trip.cities && trip.cities.length > 0 && (
               <View style={styles.citiesSection}>
@@ -304,7 +382,6 @@ export default function TripDetailScreen() {
                 </View>
               </View>
             )}
-
 
             <ThemedText style={styles.dates}>
               {trip.startDate} → {trip.endDate}
@@ -364,7 +441,8 @@ export default function TripDetailScreen() {
                             style={[
                               styles.activityStatusBadge,
                               status === 'today' && styles.activityStatusToday,
-                              status === 'upcoming' && styles.activityStatusUpcoming,
+                              status === 'upcoming' &&
+                                styles.activityStatusUpcoming,
                               status === 'past' && styles.activityStatusPast,
                             ]}
                           >
@@ -423,20 +501,21 @@ export default function TripDetailScreen() {
               📒 Journal de bord
             </ThemedText>
 
-            {notes.length > 0 && (
+            {sortedNotes.length > 0 && (
               <ThemedText style={styles.journalSummary}>
-                {notes.length} note{notes.length > 1 ? 's' : ''} enregistrée
-                {notes.length > 1 ? 's' : ''}
+                {sortedNotes.length} note
+                {sortedNotes.length > 1 ? 's' : ''} enregistrée
+                {sortedNotes.length > 1 ? 's' : ''}
               </ThemedText>
             )}
 
-            {notes.length === 0 ? (
+            {sortedNotes.length === 0 ? (
               <ThemedText style={styles.emptyText}>
                 Aucune note pour le moment. Ajoute ta première impression de
                 voyage !
               </ThemedText>
             ) : (
-              notes.map((note) => (
+              sortedNotes.map((note) => (
                 <ThemedView key={note.id} style={styles.noteCard}>
                   <ThemedText style={styles.noteDate}>{note.date}</ThemedText>
                   <ThemedText>{note.text}</ThemedText>
@@ -522,7 +601,9 @@ export default function TripDetailScreen() {
             style={[styles.input, isDark && styles.inputDark]}
           >
             <ThemedText>
-              {activityDate ? formatDate(activityDate) : 'Sélectionner une date'}
+              {activityDate
+                ? formatDate(activityDate)
+                : 'Sélectionner une date'}
             </ThemedText>
           </Pressable>
           {showActivityDatePicker && (
@@ -545,7 +626,9 @@ export default function TripDetailScreen() {
             style={[styles.input, isDark && styles.inputDark]}
           >
             <ThemedText>
-              {activityTime ? formatTime(activityTime) : 'Sélectionner une heure'}
+              {activityTime
+                ? formatTime(activityTime)
+                : 'Sélectionner une heure'}
             </ThemedText>
           </Pressable>
           {showActivityTimePicker && (
@@ -629,7 +712,9 @@ export default function TripDetailScreen() {
             style={[styles.input, isDark && styles.inputDark]}
           >
             <ThemedText>
-              {noteFormDate ? formatDate(noteFormDate) : 'Sélectionner une date'}
+              {noteFormDate
+                ? formatDate(noteFormDate)
+                : 'Sélectionner une date'}
             </ThemedText>
           </Pressable>
           {showNoteDatePicker && (
@@ -688,8 +773,46 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 8,
   },
-  country: {
+  tripDetailHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  detailMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginTop: 4,
+  },
+  country: {
+    marginTop: 0,
+  },
+  favoriteIcon: {
+    fontSize: 22,
+    opacity: 0.6,
+  },
+  favoriteIconActive: {
+    opacity: 1,
+  },
+  statusBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: '#4B5563',
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    textTransform: 'uppercase',
+  },
+  statusBadgeCurrent: {
+    borderColor: '#22c55e',
+  },
+  statusBadgeUpcoming: {
+    borderColor: '#3b82f6',
+  },
+  statusBadgePast: {
+    borderColor: '#6b7280',
   },
   citiesContainer: {
     flexDirection: 'row',
@@ -735,31 +858,31 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   activityHeaderRow: {
-   flexDirection: 'row',
-   alignItems: 'center',
-   justifyContent: 'space-between',
-   gap: 8,
- },
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
   activityStatusBadge: {
-   borderRadius: 999,
-   paddingHorizontal: 8,
-   paddingVertical: 2,
-   borderWidth: 1,
-   borderColor: '#4B5563',
- },
- activityStatusText: {
-   fontSize: 10,
-   textTransform: 'uppercase',
- },
- activityStatusToday: {
-   borderColor: '#22c55e',
- },
- activityStatusUpcoming: {
-   borderColor: '#3b82f6',
- },
- activityStatusPast: {
-   borderColor: '#6b7280',
- },
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: '#4B5563',
+  },
+  activityStatusText: {
+    fontSize: 10,
+    textTransform: 'uppercase',
+  },
+  activityStatusToday: {
+    borderColor: '#22c55e',
+  },
+  activityStatusUpcoming: {
+    borderColor: '#3b82f6',
+  },
+  activityStatusPast: {
+    borderColor: '#6b7280',
+  },
   photoCard: {
     marginRight: 12,
     width: 220,
@@ -868,7 +991,7 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 8,
   },
-    citiesSection: {
+  citiesSection: {
     marginTop: 6,
     marginBottom: 4,
     gap: 4,

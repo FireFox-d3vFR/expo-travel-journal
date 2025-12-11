@@ -1,5 +1,5 @@
-import { Activity, MOCK_TRIPS, Trip, TripNote } from '@/constants/trips';
 import React, { createContext, useContext, useState } from 'react';
+import { Activity, MOCK_TRIPS, Trip, TripNote } from '@/constants/trips';
 
 type TripsContextType = {
   trips: Trip[];
@@ -18,6 +18,7 @@ type TripsContextType = {
     patch: Partial<Omit<Activity, 'id'>>
   ) => void;
   deleteActivity: (tripId: string, activityId: string) => void;
+  toggleFavorite: (tripId: string) => void;
 };
 
 const TripsContext = createContext<TripsContextType | undefined>(undefined);
@@ -135,6 +136,16 @@ export function TripsProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  const toggleFavorite = (tripId: string) => {
+    setTrips((prev) =>
+      prev.map((trip) =>
+        trip.id === tripId
+          ? { ...trip, isFavorite: !trip.isFavorite }
+          : trip
+      )
+    );
+  };
+
   return (
     <TripsContext.Provider
       value={{
@@ -146,6 +157,7 @@ export function TripsProvider({ children }: { children: React.ReactNode }) {
         addActivity,
         updateActivity,
         deleteActivity,
+        toggleFavorite,
       }}
     >
       {children}
