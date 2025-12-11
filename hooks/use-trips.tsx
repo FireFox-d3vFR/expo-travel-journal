@@ -1,10 +1,16 @@
+import { Activity, MOCK_TRIPS, Trip, TripNote } from '@/constants/trips';
 import React, { createContext, useContext, useState } from 'react';
-import { Trip, TripNote, Activity, MOCK_TRIPS } from '@/constants/trips';
 
 type TripsContextType = {
   trips: Trip[];
   addTrip: (trip: Omit<Trip, 'id' | 'notes' | 'activities'>) => void;
   addTripNote: (tripId: string, note: Omit<TripNote, 'id'>) => void;
+  updateTripNote: (
+    tripId: string,
+    noteId: string,
+    payload: { date: string; text: string }
+  ) => void;
+  deleteTripNote: (tripId: string, noteId: string) => void;
   addActivity: (tripId: string, activity: Omit<Activity, 'id'>) => void;
   updateActivity: (
     tripId: string,
@@ -44,6 +50,36 @@ export function TripsProvider({ children }: { children: React.ReactNode }) {
             }
           : trip
       )
+    );
+  };
+
+  const updateTripNote = (
+    tripId: string,
+    noteId: string,
+    payload: { date: string; text: string }
+  ) => {
+    setTrips((current) =>
+      current.map((trip) => {
+        if (trip.id !== tripId) return trip;
+        return {
+          ...trip,
+          notes: (trip.notes ?? []).map((note) =>
+            note.id === noteId ? { ...note, ...payload } : note
+          ),
+        };
+      })
+    );
+  };
+
+  const deleteTripNote = (tripId: string, noteId: string) => {
+    setTrips((current) =>
+      current.map((trip) => {
+        if (trip.id !== tripId) return trip;
+        return {
+          ...trip,
+          notes: (trip.notes ?? []).filter((note) => note.id !== noteId),
+        };
+      })
     );
   };
 
@@ -105,6 +141,8 @@ export function TripsProvider({ children }: { children: React.ReactNode }) {
         trips,
         addTrip,
         addTripNote,
+        updateTripNote,
+        deleteTripNote,
         addActivity,
         updateActivity,
         deleteActivity,

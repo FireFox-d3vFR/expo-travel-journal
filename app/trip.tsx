@@ -93,17 +93,27 @@ export default function TripDetailScreen() {
   const params = useLocalSearchParams();
   const tripId = params.id as string | undefined;
 
-  const { trips, addTripNote, addActivity, updateActivity, deleteActivity } =
+  const { trips, addTripNote, updateTripNote, deleteTripNote, addActivity, updateActivity, deleteActivity } =
     useTrips();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
   const trip = trips.find((t) => t.id === tripId);
-  const notes = trip?.notes ?? [];
+  const notes = [...(trip?.notes ?? [])].sort((a, b) => b.date.localeCompare(a.date));
   const activities = trip?.activities ?? [];
 
   // Journal de bord
   const [noteText, setNoteText] = useState('');
+  const [noteModalVisible, setNoteModalVisible] = useState(false);
+  const [editingNote, setEditingNote] = useState<{
+    id: string;
+    date: string;
+    text: string;
+  } | null>(null);
+  const [noteFormDate, setNoteFormDate] = useState<Date | null>(null);
+  const [showNoteDatePicker, setShowNoteDatePicker] = useState(false);
+  const [noteFormText, setNoteFormText] = useState('');
+
 
   // Activités - modal
   const [activityModalVisible, setActivityModalVisible] = useState(false);
@@ -125,6 +135,54 @@ export default function TripDetailScreen() {
     });
     setNoteText('');
   };
+
+    const openEditNote = (note: { id: string; date: string; text: string }) => {
+    setEditingNote(note);
+    setNoteFormDate(new Date(note.date));
+    setNoteFormText(note.text);
+    setNoteModalVisible(true);
+  };
+
+  const handleSaveNoteEdit = () => {
+    if (!trip || !editingNote) return;
+
+    const dateStr = formatDate(noteFormDate);
+    const text = noteFormText.trim();
+
+    if (!dateStr || !text) {
+      Alert.alert(
+        'Champs manquants',
+        'Merci de renseigner au minimum une date et un texte.'
+      );
+      return;
+    }
+
+    updateTripNote(trip.id, editingNote.id, {
+      date: dateStr,
+      text,
+    });
+
+    setNoteModalVisible(false);
+    setEditingNote(null);
+  };
+
+  const handleDeleteNote = (note: { id: string; date: string; text: string }) => {
+    if (!trip) return;
+
+    Alert.alert(
+      'Supprimer cette note ?',
+      `“${note.text.slice(0, 40)}${note.text.length > 40 ? '…' : ''}”`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: () => deleteTripNote(trip.id, note.id),
+        },
+      ]
+    );
+  };
+
 
   const openCreateActivity = () => {
     if (!trip) return;
@@ -382,6 +440,25 @@ export default function TripDetailScreen() {
                 <ThemedView key={note.id} style={styles.noteCard}>
                   <ThemedText style={styles.noteDate}>{note.date}</ThemedText>
                   <ThemedText>{note.text}</ThemedText>
+
+                  <View style={styles.activityActionsRow}>
+                    <Pressable
+                      onPress={() => openEditNote(note)}
+                      style={styles.activityAction}
+                    >
+                      <ThemedText style={styles.activityActionText}>
+                        ✏️ Modifier
+                      </ThemedText>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => handleDeleteNote(note)}
+                      style={styles.activityAction}
+                    >
+                      <ThemedText style={styles.activityDeleteText}>
+                        🗑 Supprimer
+                      </ThemedText>
+                    </Pressable>
+                  </View>
                 </ThemedView>
               ))
             )}
@@ -522,6 +599,78 @@ export default function TripDetailScreen() {
               title={editingActivity ? 'Enregistrer' : 'Ajouter'}
               onPress={handleSaveActivity}
             />
+          </View>
+        </ThemedView>
+      </Modal>
+
+      {/* Modal note (édition) */}
+      <Modal
+        visible={noteModalVisible}
+        animationType="slide"
+        onRequestClose={() => {
+          setNoteModalVisible(false);
+          setEditingNote(null);
+        }}
+      >
+        <ThemedView style={styles.modalContainer}>
+          <ThemedText type="title" style={styles.modalTitle}>
+            Modifier une note
+          </ThemedText>
+
+          {trip && (
+            <ThemedText style={styles.modalSubtitle}>
+              Pour le voyage : {trip.title}
+            </ThemedText>
+          )}
+
+          <ThemedText>Date</ThemedText>
+          <Pressable
+            onPress={() => setShowNoteDatePicker(true)}
+            style={[styles.input, isDark && styles.inputDark]}
+          >
+            <ThemedText>
+              {noteFormDate ? formatDate(noteFormDate) : 'Sélectionner une date'}
+            </ThemedText>
+          </Pressable>
+          {showNoteDatePicker && (
+            <DateTimePicker
+              value={noteFormDate || new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              minimumDate={trip ? new Date(trip.startDate) : undefined}
+              maximumDate={trip ? new Date(trip.endDate) : undefined}
+              onChange={(event: DateTimePickerEvent, date?: Date) => {
+                if (Platform.OS !== 'ios') setShowNoteDatePicker(false);
+                if (date) setNoteFormDate(date);
+              }}
+            />
+          )}
+
+          <ThemedText>Texte</ThemedText>
+          <TextInput
+            style={[
+              styles.input,
+              styles.textInput,
+              isDark && styles.inputDark,
+              isDark && styles.textInputDark,
+              { minHeight: 80, textAlignVertical: 'top' },
+            ]}
+            value={noteFormText}
+            onChangeText={setNoteFormText}
+            placeholder="Raconte ta journée..."
+            placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+            multiline
+          />
+
+          <View style={styles.modalButtonsRow}>
+            <Button
+              title="Annuler"
+              onPress={() => {
+                setNoteModalVisible(false);
+                setEditingNote(null);
+              }}
+            />
+            <Button title="Enregistrer" onPress={handleSaveNoteEdit} />
           </View>
         </ThemedView>
       </Modal>
