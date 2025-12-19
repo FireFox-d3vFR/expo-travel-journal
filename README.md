@@ -1,50 +1,119 @@
-# Welcome to your Expo app 👋
+# Expo Travel Journal
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Projet mobile créé avec Expo & React Native pour gérer et partager des carnets de voyage.
 
-## Get started
+## Présentation
 
-1. Install dependencies
+`Expo-Travel-Journal` est une application mobile (Expo) qui permet de créer, visualiser et partager des carnets de voyage. Le projet fournit une base structurée avec navigation par onglets, écrans de profil, d'exploration et de création de voyage.
 
-   ```bash
-   npm install
-   ```
+## Fonctionnalités
 
-2. Start the app
+- Créer de nouveaux voyages (titre, description, photos, destinations)
+- Liste et détail des voyages
+- Écran de profil utilisateur
+- Navigation par onglets (Explore, Trips, Profile, Settings)
+- Support iOS / Android via Expo
 
-   ```bash
-   npx expo start
-   ```
+## Stack technique
 
-In the output, you'll find options to open the app in a
+- React Native (TypeScript)
+- Expo (managed workflow)
+- Hooks personnalisés pour données et thèmes
+- Structure de composants réutilisables (components/ et components/ui/)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Prérequis
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- Node.js (>= 14 recommandé)
+- npm ou yarn
+- Expo CLI (optionnel globalement): `npm install -g expo-cli` ou utiliser `npx expo`
 
-## Get a fresh project
+## Installation
 
-When you're ready, run:
+1. Cloner le dépôt :
 
-```bash
-npm run reset-project
+```
+git clone <repo-url>
+cd expo-travel-journal
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Installer les dépendances :
 
-## Learn more
+Avec npm :
 
-To learn more about developing your project with Expo, look at the following resources:
+```
+npm install
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Avec yarn :
 
-## Join the community
+```
+yarn install
+```
 
-Join our community of developers creating universal apps.
+## Lancer le projet (Expo)
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Lancer le serveur Metro :
+
+```
+npm run start
+# ou
+yarn start
+```
+
+Puis ouvrir l'application :
+
+- Scanner le QR code avec l'application Expo Go (iOS/Android) sur votre téléphone
+- Ou lancer un simulateur :
+  - iOS : `i` (sur macOS avec Xcode installé)
+  - Android : `a` (avec un AVD Android configuré)
+
+Pour démarrer via npx (si `expo-cli` n'est pas installé globalement) :
+
+```
+npx expo start
+```
+
+## Scripts utiles
+
+- `npm run start` / `yarn start` : démarre Expo Metro
+- `npm run ios` / `yarn ios` : lance sur simulateur iOS (macOS seulement)
+- `npm run android` / `yarn android` : lance sur AVD Android
+- `npm run web` / `yarn web` : lance la version web (si configurée)
+
+Vérifiez le `package.json` pour la liste complète des scripts.
+
+## Structure du projet (extraits)
+
+- `app/` : écrans et navigation (ex : `trip.tsx`, `trip-new.tsx`, `modal.tsx`)
+- `components/` : composants réutilisables (UI, icônes, helpers)
+- `assets/images/` : images statiques
+- `constants/` : thèmes et données statiques
+- `hooks/` : hooks personnalisés (`use-trips.tsx`, `use-settings.tsx`, ...)
+- `scripts/` : scripts utilitaires (ex: `reset-project.js`)
+
+Consultez le code pour plus de détails sur chaque écran.
+
+## Contribution
+
+1. Créer une branche de feature :
+
+```
+git checkout -b feat/ma-fonctionnalite
+```
+
+2. Faire vos changements, tester et ouvrir une PR vers la branche principale.
+
+Merci de documenter les changements importants et d'ajouter des captures d'écran si nécessaire.
+
+## Tests & Qualité
+
+Le projet ne contient pas (encore) de suite de tests intégrée. Pour ajouter des tests, envisagez Jest + React Native Testing Library.
+
+## Déploiement
+
+Utilisez les outils Expo pour build & publish : `eas build` / `expo build` selon votre configuration (EAS recommandé pour builds production).
+
+## Ressources utiles
+
+- Docs Expo : https://docs.expo.dev
+- React Native : https://reactnative.dev
