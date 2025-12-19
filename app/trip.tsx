@@ -15,6 +15,7 @@ import {
   StyleSheet,
   TextInput,
   View,
+  Share,
 } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -326,6 +327,21 @@ export default function TripDetailScreen() {
           String(sortedNotes.length)
         );
 
+    const handleShareTrip = async () => {
+    if (!trip) return;
+
+    try {
+      await Share.share({
+        message: `Mon voyage "${trip.title}" à ${trip.country} du ${trip.startDate} au ${trip.endDate}.`,
+      });
+    } catch (error) {
+      Alert.alert(
+        'Erreur',
+        "Impossible de partager le voyage pour le moment."
+      );
+    }
+  };
+
   return (
     <>
       <Stack.Screen
@@ -343,16 +359,31 @@ export default function TripDetailScreen() {
             <View style={styles.tripDetailHeaderRow}>
               <ThemedText type="title">{trip.title}</ThemedText>
 
-              <Pressable hitSlop={8} onPress={() => toggleFavorite(trip.id)}>
-                <ThemedText
-                  style={[
-                    styles.favoriteIcon,
-                    trip.isFavorite && styles.favoriteIconActive,
-                  ]}
+              <View style={styles.tripHeaderActions}>
+                {/* Bouton partager */}
+                <Pressable
+                  hitSlop={8}
+                  onPress={handleShareTrip}
+                  style={styles.shareButton}
                 >
-                  {trip.isFavorite ? '★' : '☆'}
-                </ThemedText>
-              </Pressable>
+                  <ThemedText style={styles.shareButtonText}>
+                    Partager
+                  </ThemedText>
+                </Pressable>
+                <Pressable 
+                  hitSlop={8} 
+                  onPress={() => toggleFavorite(trip.id)}
+                >
+                  <ThemedText
+                    style={[
+                      styles.favoriteIcon,
+                      trip.isFavorite && styles.favoriteIconActive,
+                    ]}
+                  >
+                    {trip.isFavorite ? '★' : '☆'}
+                  </ThemedText>
+                </Pressable>
+              </View>
             </View>
 
             <View style={styles.detailMetaRow}>
@@ -1025,5 +1056,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.7,
     marginBottom: 8,
+  },
+    tripHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  shareButton: {
+    paddingVertical: 4,
+  },
+  shareButtonText: {
+    fontSize: 12,
+    textDecorationLine: 'underline',
+    opacity: 0.8,
   },
 });
