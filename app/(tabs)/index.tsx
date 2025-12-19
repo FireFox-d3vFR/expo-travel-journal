@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -16,6 +17,8 @@ import { ThemedView } from '@/components/themed-view';
 import { Trip } from '@/constants/trips';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTrips } from '@/hooks/use-trips';
+import { useUserProfile } from '@/hooks/use-user-profile';
+// import { useTranslation } from '@/hooks/use-translation';
 
 type SortDirection = 'asc' | 'desc';
 type TripFilter = 'all' | 'favorites' | 'upcoming' | 'ongoing' | 'finished';
@@ -36,11 +39,22 @@ function getTripStatus(
   return 'ongoing';
 }
 
+function getInitials(name: string) {
+  const parts = name.split(' ').filter(Boolean);
+  if (parts.length === 0) return '🙂';
+  return parts
+    .map((p) => p[0]?.toUpperCase())
+    .slice(0, 2)
+    .join('');
+}
+
 /**
  * Onglet "Voyages" : liste des trips.
  */
 export default function TripsListScreen() {
   const { trips, toggleFavorite } = useTrips();
+  const { profile } = useUserProfile();
+  // const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
 
@@ -216,6 +230,26 @@ export default function TripsListScreen() {
         </ThemedText>
 
         <View style={styles.headerRightRow}>
+          {/* Avatar profil */}
+        <Pressable
+            onPress={() => router.push('/profile')}
+            hitSlop={8}
+          >
+            <View style={styles.avatarSmall}>
+              {profile.avatarUrl ? (
+                <Image
+                  source={{ uri: profile.avatarUrl }}
+                  style={styles.avatarSmallImage}
+                />
+              ) : (
+                <ThemedText style={styles.avatarSmallText}>
+                  {getInitials(profile.name)}
+                </ThemedText>
+              )}
+            </View>
+          </Pressable>
+
+
           <Pressable onPress={toggleSort}>
             <ThemedText type="link">
               {sortDirection === 'asc'
@@ -440,5 +474,24 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 11,
+  },
+  avatarSmall: {
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#4B5563',
+    overflow: 'hidden',
+  },
+  avatarSmallText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  avatarSmallImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
 });

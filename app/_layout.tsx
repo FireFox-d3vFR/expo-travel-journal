@@ -1,3 +1,4 @@
+// app/_layout.tsx
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -5,12 +6,14 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { TripsProvider } from '@/hooks/use-trips';
+import { SettingsProvider } from '@/hooks/use-settings';
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-export default function RootLayout() {
+// Composant interne : peut utiliser useColorScheme car il est SOUS SettingsProvider
+function RootLayoutInner() {
   const colorScheme = useColorScheme();
 
   return (
@@ -22,7 +25,17 @@ export default function RootLayout() {
           <Stack.Screen name="trip-new" options={{ title: 'Nouveau voyage' }} />
         </Stack>
       </TripsProvider>
-      <StatusBar style="auto" />
+
+      {/* Tu peux laisser "auto" si tu préfères */}
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
     </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <SettingsProvider>
+      <RootLayoutInner />
+    </SettingsProvider>
   );
 }
