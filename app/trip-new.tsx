@@ -24,6 +24,7 @@ import { useCities } from '@/hooks/use-cities';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { CountryOption, useCountries } from '@/hooks/use-countries';
 import { useTrips } from '@/hooks/use-trips';
+import { useTranslation } from '@/hooks/use-translation';
 
 function formatDate(date: Date | null) {
   if (!date) return '';
@@ -34,6 +35,7 @@ export default function NewTripScreen() {
   const { addTrip } = useTrips();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
 
   const [title, setTitle] = useState('');
 
@@ -61,9 +63,7 @@ export default function NewTripScreen() {
   const filteredCountries = useMemo(() => {
     const query = countrySearch.toLowerCase();
     if (!query) return countries;
-    return countries.filter((c) =>
-      c.name.toLowerCase().includes(query)
-    );
+    return countries.filter((c) => c.name.toLowerCase().includes(query));
   }, [countries, countrySearch]);
 
   // Villes du pays sélectionné (API)
@@ -99,16 +99,16 @@ export default function NewTripScreen() {
 
     if (!title || !selectedCountry || !startDateStr || !endDateStr) {
       Alert.alert(
-        'Champs manquants',
-        'Merci de renseigner le titre, le pays et les dates.'
+        t('tripNew.errors.missingFields.title'),
+        t('tripNew.errors.missingFields.message')
       );
       return;
     }
 
     if (isRoadtrip && selectedCities.length === 0) {
       Alert.alert(
-        'Villes manquantes',
-        'Pour un roadtrip, sélectionne au moins une ville.'
+        t('tripNew.errors.missingCities.title'),
+        t('tripNew.errors.missingCities.message')
       );
       return;
     }
@@ -141,7 +141,10 @@ export default function NewTripScreen() {
 
   const openCitiesModal = () => {
     if (!selectedCountry) {
-      Alert.alert('Pays manquant', 'Choisis d’abord un pays.');
+      Alert.alert(
+        t('tripNew.errors.missingCountry.title'),
+        t('tripNew.errors.missingCountry.message')
+      );
       return;
     }
     setCitySearch('');
@@ -150,25 +153,22 @@ export default function NewTripScreen() {
 
   const toggleCity = (city: string) => {
     setSelectedCities((prev) =>
-      prev.includes(city)
-        ? prev.filter((c) => c !== city)
-        : [...prev, city]
+      prev.includes(city) ? prev.filter((c) => c !== city) : [...prev, city]
     );
   };
 
-  const isCitySelected = (city: string) =>
-    selectedCities.includes(city);
+  const isCitySelected = (city: string) => selectedCities.includes(city);
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Nouveau voyage' }} />
+      <Stack.Screen options={{ title: t('tripNew.title') }} />
       <ScrollView contentContainerStyle={styles.container}>
         <ThemedText type="title" style={styles.heading}>
-          Nouveau voyage
+          {t('tripNew.title')}
         </ThemedText>
 
         {/* Titre */}
-        <ThemedText>Titre</ThemedText>
+        <ThemedText>{t('tripNew.field.title')}</ThemedText>
         <TextInput
           style={[
             styles.input,
@@ -178,12 +178,12 @@ export default function NewTripScreen() {
           ]}
           value={title}
           onChangeText={setTitle}
-          placeholder="Roadtrip en Islande"
+          placeholder={t('tripNew.field.titlePlaceholder')}
           placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
         />
 
         {/* Pays */}
-        <ThemedText>Pays</ThemedText>
+        <ThemedText>{t('tripNew.field.country')}</ThemedText>
         <Pressable
           onPress={openCountryModal}
           style={[styles.input, styles.countryButton, isDark && styles.inputDark]}
@@ -202,7 +202,7 @@ export default function NewTripScreen() {
               </>
             ) : (
               <ThemedText style={styles.countryPlaceholder}>
-                Sélectionner un pays
+                {t('tripNew.field.countryPlaceholder')}
               </ThemedText>
             )}
           </View>
@@ -210,24 +210,21 @@ export default function NewTripScreen() {
 
         {/* Roadtrip */}
         <View style={styles.roadtripRow}>
-          <ThemedText>Roadtrip</ThemedText>
-          <Switch
-            value={isRoadtrip}
-            onValueChange={setIsRoadtrip}
-          />
+          <ThemedText>{t('tripNew.field.roadtrip')}</ThemedText>
+          <Switch value={isRoadtrip} onValueChange={setIsRoadtrip} />
         </View>
 
         {isRoadtrip && selectedCountry && (
           <>
-            <ThemedText>Étapes (villes)</ThemedText>
+            <ThemedText>{t('tripNew.field.cities')}</ThemedText>
             <Pressable
               onPress={openCitiesModal}
               style={[styles.input, isDark && styles.inputDark]}
             >
               <ThemedText>
                 {selectedCities.length > 0
-                  ? 'Ajouter / modifier les villes'
-                  : 'Sélectionner des villes'}
+                  ? t('tripNew.field.citiesEdit')
+                  : t('tripNew.field.citiesPlaceholder')}
               </ThemedText>
             </Pressable>
 
@@ -247,13 +244,13 @@ export default function NewTripScreen() {
         )}
 
         {/* Dates */}
-        <ThemedText>Date de début</ThemedText>
+        <ThemedText>{t('tripNew.field.startDate')}</ThemedText>
         <Pressable
           onPress={() => setShowStartPicker(true)}
           style={[styles.input, isDark && styles.inputDark]}
         >
           <ThemedText>
-            {startDate ? formatDate(startDate) : 'Sélectionner une date'}
+            {startDate ? formatDate(startDate) : t('tripNew.field.datePlaceholder')}
           </ThemedText>
         </Pressable>
         {showStartPicker && (
@@ -265,13 +262,13 @@ export default function NewTripScreen() {
           />
         )}
 
-        <ThemedText>Date de fin</ThemedText>
+        <ThemedText>{t('tripNew.field.endDate')}</ThemedText>
         <Pressable
           onPress={() => setShowEndPicker(true)}
           style={[styles.input, isDark && styles.inputDark]}
         >
           <ThemedText>
-            {endDate ? formatDate(endDate) : 'Sélectionner une date'}
+            {endDate ? formatDate(endDate) : t('tripNew.field.datePlaceholder')}
           </ThemedText>
         </Pressable>
         {showEndPicker && (
@@ -283,7 +280,7 @@ export default function NewTripScreen() {
           />
         )}
 
-        <Button title="Enregistrer" onPress={handleSave} />
+        <Button title={t('tripNew.actions.save')} onPress={handleSave} />
       </ScrollView>
 
       {/* Modal pays */}
@@ -294,7 +291,7 @@ export default function NewTripScreen() {
       >
         <ThemedView style={styles.modalContainer}>
           <ThemedText type="title" style={styles.modalTitle}>
-            Choisir un pays
+            {t('tripNew.countryModal.title')}
           </ThemedText>
 
           {countriesError ? (
@@ -311,7 +308,7 @@ export default function NewTripScreen() {
                   isDark && styles.textInputDark,
                   styles.searchInput,
                 ]}
-                placeholder="Rechercher un pays"
+                placeholder={t('tripNew.countryModal.searchPlaceholder')}
                 placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
                 value={countrySearch}
                 onChangeText={setCountrySearch}
@@ -319,7 +316,7 @@ export default function NewTripScreen() {
 
               {loadingCountries ? (
                 <ThemedText style={styles.modalInfo}>
-                  Chargement des pays...
+                  {t('tripNew.countryModal.loading')}
                 </ThemedText>
               ) : (
                 <FlatList
@@ -347,7 +344,7 @@ export default function NewTripScreen() {
 
           <View style={styles.modalFooter}>
             <Button
-              title="Fermer"
+              title={t('tripNew.actions.close')}
               onPress={() => setCountryModalVisible(false)}
             />
           </View>
@@ -362,7 +359,7 @@ export default function NewTripScreen() {
       >
         <ThemedView style={styles.modalContainer}>
           <ThemedText type="title" style={styles.modalTitle}>
-            Villes de {selectedCountry?.name}
+            {t('tripNew.citiesModal.titlePrefix')} {selectedCountry?.name}
           </ThemedText>
 
           {citiesError ? (
@@ -379,7 +376,7 @@ export default function NewTripScreen() {
                   isDark && styles.textInputDark,
                   styles.searchInput,
                 ]}
-                placeholder="Rechercher une ville"
+                placeholder={t('tripNew.citiesModal.searchPlaceholder')}
                 placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
                 value={citySearch}
                 onChangeText={setCitySearch}
@@ -387,7 +384,7 @@ export default function NewTripScreen() {
 
               {loadingCities ? (
                 <ThemedText style={styles.modalInfo}>
-                  Chargement des villes...
+                  {t('tripNew.citiesModal.loading')}
                 </ThemedText>
               ) : (
                 <FlatList
@@ -404,11 +401,7 @@ export default function NewTripScreen() {
                         ]}
                       >
                         <ThemedText
-                          style={
-                            selected
-                              ? styles.cityItemSelectedText
-                              : undefined
-                          }
+                          style={selected ? styles.cityItemSelectedText : undefined}
                         >
                           {item}
                         </ThemedText>
@@ -422,10 +415,10 @@ export default function NewTripScreen() {
 
           <View style={styles.modalFooter}>
             <ThemedText style={styles.modalInfo}>
-              {selectedCities.length} ville(s) sélectionnée(s)
+              {selectedCities.length} {t('tripNew.citiesModal.selectedCountSuffix')}
             </ThemedText>
             <Button
-              title="Valider"
+              title={t('tripNew.actions.confirm')}
               onPress={() => setCitiesModalVisible(false)}
             />
           </View>

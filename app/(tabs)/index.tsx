@@ -18,14 +18,12 @@ import { Trip } from '@/constants/trips';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTrips } from '@/hooks/use-trips';
 import { useUserProfile } from '@/hooks/use-user-profile';
-// import { useTranslation } from '@/hooks/use-translation';
+import { useTranslation } from '@/hooks/use-translation';
 
 type SortDirection = 'asc' | 'desc';
 type TripFilter = 'all' | 'favorites' | 'upcoming' | 'ongoing' | 'finished';
 
-function getTripStatus(
-  trip: Trip
-): 'upcoming' | 'ongoing' | 'finished' {
+function getTripStatus(trip: Trip): 'upcoming' | 'ongoing' | 'finished' {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -54,14 +52,12 @@ function getInitials(name: string) {
 export default function TripsListScreen() {
   const { trips, toggleFavorite } = useTrips();
   const { profile } = useUserProfile();
-  // const { t } = useTranslation();
+  const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
 
-  const [sortDirection, setSortDirection] =
-    useState<SortDirection>('desc');
-  const [activeFilter, setActiveFilter] =
-    useState<TripFilter>('all');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [activeFilter, setActiveFilter] = useState<TripFilter>('all');
   const [search, setSearch] = useState('');
 
   const filteredTrips = useMemo(() => {
@@ -72,14 +68,10 @@ export default function TripsListScreen() {
     list = list.filter((trip) => {
       const status = getTripStatus(trip);
 
-      if (activeFilter === 'favorites' && !trip.isFavorite)
-        return false;
-      if (activeFilter === 'upcoming' && status !== 'upcoming')
-        return false;
-      if (activeFilter === 'ongoing' && status !== 'ongoing')
-        return false;
-      if (activeFilter === 'finished' && status !== 'finished')
-        return false;
+      if (activeFilter === 'favorites' && !trip.isFavorite) return false;
+      if (activeFilter === 'upcoming' && status !== 'upcoming') return false;
+      if (activeFilter === 'ongoing' && status !== 'ongoing') return false;
+      if (activeFilter === 'finished' && status !== 'finished') return false;
 
       return true;
     });
@@ -87,11 +79,7 @@ export default function TripsListScreen() {
     // 2) recherche (titre, pays, villes)
     if (q) {
       list = list.filter((trip) => {
-        const haystack = [
-          trip.title,
-          trip.country,
-          ...(trip.cities ?? []),
-        ]
+        const haystack = [trip.title, trip.country, ...(trip.cities ?? [])]
           .join(' ')
           .toLowerCase();
 
@@ -114,9 +102,7 @@ export default function TripsListScreen() {
   }, [trips, activeFilter, search, sortDirection]);
 
   const toggleSort = () => {
-    setSortDirection((prev) =>
-      prev === 'asc' ? 'desc' : 'asc'
-    );
+    setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
   };
 
   const renderItem = ({ item }: { item: Trip }) => {
@@ -139,22 +125,15 @@ export default function TripsListScreen() {
           <View style={styles.cardText}>
             {/* Titre + étoile favoris */}
             <View style={styles.tripHeaderRow}>
-              <ThemedText
-                type="defaultSemiBold"
-                style={styles.tripTitle}
-              >
+              <ThemedText type="defaultSemiBold" style={styles.tripTitle}>
                 {item.title}
               </ThemedText>
 
-              <Pressable
-                hitSlop={8}
-                onPress={() => toggleFavorite(item.id)}
-              >
+              <Pressable hitSlop={8} onPress={() => toggleFavorite(item.id)}>
                 <ThemedText
                   style={[
                     styles.favoriteIcon,
-                    item.isFavorite &&
-                      styles.favoriteIconActive,
+                    item.isFavorite && styles.favoriteIconActive,
                   ]}
                 >
                   {item.isFavorite ? '★' : '☆'}
@@ -169,10 +148,8 @@ export default function TripsListScreen() {
               </ThemedText>
               {item.isRoadtrip && (
                 <View style={styles.roadtripBadge}>
-                  <ThemedText
-                    style={styles.roadtripBadgeText}
-                  >
-                    ROADTRIP
+                  <ThemedText style={styles.roadtripBadgeText}>
+                    {t('trip.badge.roadtrip')}
                   </ThemedText>
                 </View>
               )}
@@ -187,20 +164,17 @@ export default function TripsListScreen() {
               <View
                 style={[
                   styles.statusBadge,
-                  status === 'upcoming' &&
-                    styles.statusUpcoming,
-                  status === 'ongoing' &&
-                    styles.statusOngoing,
-                  status === 'finished' &&
-                    styles.statusFinished,
+                  status === 'upcoming' && styles.statusUpcoming,
+                  status === 'ongoing' && styles.statusOngoing,
+                  status === 'finished' && styles.statusFinished,
                 ]}
               >
                 <ThemedText style={styles.statusText}>
                   {status === 'upcoming'
-                    ? 'À venir'
+                    ? t('tripStatus.upcoming')
                     : status === 'ongoing'
-                    ? 'En cours'
-                    : 'Terminé'}
+                    ? t('tripStatus.ongoing')
+                    : t('tripStatus.finished')}
                 </ThemedText>
               </View>
             </View>
@@ -226,15 +200,12 @@ export default function TripsListScreen() {
       {/* Header + actions */}
       <ThemedView style={styles.headerRow}>
         <ThemedText type="title" style={styles.heading}>
-          Mes voyages
+          {t('trips.title')}
         </ThemedText>
 
         <View style={styles.headerRightRow}>
           {/* Avatar profil */}
-        <Pressable
-            onPress={() => router.push('/profile')}
-            hitSlop={8}
-          >
+          <Pressable onPress={() => router.push('/profile')} hitSlop={8}>
             <View style={styles.avatarSmall}>
               {profile.avatarUrl ? (
                 <Image
@@ -249,16 +220,18 @@ export default function TripsListScreen() {
             </View>
           </Pressable>
 
-
           <Pressable onPress={toggleSort}>
             <ThemedText type="link">
               {sortDirection === 'asc'
-                ? 'Tri ↑'
-                : 'Tri ↓'}
+                ? t('trips.sort.asc')
+                : t('trips.sort.desc')}
             </ThemedText>
           </Pressable>
+
           <Pressable onPress={() => router.push('/trip-new')}>
-            <ThemedText type="link">+ Ajouter</ThemedText>
+            <ThemedText type="link">
+              {t('trips.addButton')}
+            </ThemedText>
           </Pressable>
         </View>
       </ThemedView>
@@ -269,7 +242,7 @@ export default function TripsListScreen() {
           styles.searchInput,
           colorScheme === 'dark' && styles.searchInputDark,
         ]}
-        placeholder="Rechercher un voyage (pays, ville, titre)..."
+        placeholder={t('trips.searchPlaceholder')}
         placeholderTextColor={
           colorScheme === 'dark' ? '#6B7280' : '#9CA3AF'
         }
@@ -280,20 +253,17 @@ export default function TripsListScreen() {
       {/* Filtres thématiques */}
       <View style={styles.filtersRow}>
         {[
-          { key: 'all', label: 'Tous' },
-          { key: 'favorites', label: 'Favoris' },
-          { key: 'upcoming', label: 'À venir' },
-          { key: 'ongoing', label: 'En cours' },
-          { key: 'finished', label: 'Terminés' },
+          { key: 'all', labelKey: 'trips.filter.all' },
+          { key: 'favorites', labelKey: 'trips.filter.favorites' },
+          { key: 'upcoming', labelKey: 'trips.filter.upcoming' },
+          { key: 'ongoing', labelKey: 'trips.filter.ongoing' },
+          { key: 'finished', labelKey: 'trips.filter.finished' },
         ].map((filter) => {
-          const active =
-            activeFilter === (filter.key as TripFilter);
+          const active = activeFilter === (filter.key as TripFilter);
           return (
             <Pressable
               key={filter.key}
-              onPress={() =>
-                setActiveFilter(filter.key as TripFilter)
-              }
+              onPress={() => setActiveFilter(filter.key as TripFilter)}
               style={[
                 styles.filterChip,
                 active && styles.filterChipActive,
@@ -305,7 +275,7 @@ export default function TripsListScreen() {
                   active && styles.filterChipTextActive,
                 ]}
               >
-                {filter.label}
+                {t(filter.labelKey as any)}
               </ThemedText>
             </Pressable>
           );
@@ -475,6 +445,8 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 11,
   },
+
+  // Avatar header
   avatarSmall: {
     width: 32,
     height: 32,

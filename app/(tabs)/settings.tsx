@@ -4,35 +4,34 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useSettings } from '@/hooks/use-settings';
+import { useTranslation } from '@/hooks/use-translation';
 
 export default function SettingsScreen() {
   const { theme, setTheme, language, setLanguage } = useSettings();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
 
   const themeOptions = [
-    { key: 'system', label: 'Système' },
-    { key: 'light', label: 'Clair' },
-    { key: 'dark', label: 'Sombre' },
-  ] as const;
+    { key: 'system' as const, labelKey: 'settings.theme.system' },
+    { key: 'light' as const, labelKey: 'settings.theme.light' },
+    { key: 'dark' as const, labelKey: 'settings.theme.dark' },
+  ];
 
   const languageOptions = [
-    { key: 'fr', label: 'Français' },
-    { key: 'en', label: 'English' },
-  ] as const;
+    { key: 'fr' as const, labelKey: 'settings.language.fr' },
+    { key: 'en' as const, labelKey: 'settings.language.en' },
+  ];
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Réglages' }} />
+      <Stack.Screen options={{ title: t('settings.title') }} />
       <ThemedView style={styles.container}>
         {/* Section thème */}
         <ThemedText type="title" style={styles.sectionTitle}>
-          Apparence
+          {t('settings.appearanceTitle')}
         </ThemedText>
         <ThemedText style={styles.sectionSubtitle}>
-          Choisis comment l’application s’adapte au thème de ton téléphone.
+          {t('settings.appearanceDescription')}
         </ThemedText>
 
         <View style={styles.chipsRow}>
@@ -42,10 +41,7 @@ export default function SettingsScreen() {
               <Pressable
                 key={opt.key}
                 onPress={() => setTheme(opt.key)}
-                style={[
-                  styles.chip,
-                  active && styles.chipActive,
-                ]}
+                style={[styles.chip, active && styles.chipActive]}
               >
                 <ThemedText
                   style={[
@@ -53,7 +49,7 @@ export default function SettingsScreen() {
                     active && styles.chipTextActive,
                   ]}
                 >
-                  {opt.label}
+                  {t(opt.labelKey as any)}
                 </ThemedText>
               </Pressable>
             );
@@ -62,10 +58,10 @@ export default function SettingsScreen() {
 
         {/* Section langue */}
         <ThemedText type="title" style={styles.sectionTitle}>
-          Langue
+          {t('settings.languageTitle')}
         </ThemedText>
         <ThemedText style={styles.sectionSubtitle}>
-          Langue principale de l’interface (FR / EN).
+          {t('settings.languageDescription')}
         </ThemedText>
 
         <View style={styles.chipsRow}>
@@ -75,10 +71,7 @@ export default function SettingsScreen() {
               <Pressable
                 key={opt.key}
                 onPress={() => setLanguage(opt.key)}
-                style={[
-                  styles.chip,
-                  active && styles.chipActive,
-                ]}
+                style={[styles.chip, active && styles.chipActive]}
               >
                 <ThemedText
                   style={[
@@ -86,7 +79,7 @@ export default function SettingsScreen() {
                     active && styles.chipTextActive,
                   ]}
                 >
-                  {opt.label}
+                  {t(opt.labelKey as any)}
                 </ThemedText>
               </Pressable>
             );
@@ -94,8 +87,7 @@ export default function SettingsScreen() {
         </View>
 
         <ThemedText style={styles.helperText}>
-          (Pour l’instant, le choix de langue est stocké dans les réglages. On
-          pourra ensuite brancher une vraie traduction des textes FR/EN.)
+          {t('settings.languageNote')}
         </ThemedText>
       </ThemedView>
     </>

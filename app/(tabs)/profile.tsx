@@ -1,15 +1,15 @@
 import { Stack } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Alert,
-    Button,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    View,
-    Image,
-    Platform,
-    ToastAndroid,
+  Alert,
+  Button,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+  Image,
+  Platform,
+  ToastAndroid,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -19,6 +19,7 @@ import { Trip } from '@/constants/trips';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTrips } from '@/hooks/use-trips';
 import { useUserProfile } from '@/hooks/use-user-profile';
+import { useTranslation } from '@/hooks/use-translation';
 
 type TripStatus = 'upcoming' | 'ongoing' | 'finished';
 
@@ -46,6 +47,7 @@ export default function ProfileScreen() {
   const { trips } = useTrips();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
 
   // Stats voyages
   const totalTrips = trips.length;
@@ -77,12 +79,13 @@ export default function ProfileScreen() {
   const [bio, setBio] = useState(profile.bio ?? '');
 
   const handlePickAvatar = async () => {
-    // Demande de permission
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const { status } =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+
     if (status !== 'granted') {
       Alert.alert(
-        'Permission requise',
-        'Nous avons besoin de la permission d\'accéder à ta galerie pour choisir une photo de profil.'
+        t('profile.avatar.permissionTitle'),
+        t('profile.avatar.permissionMessage')
       );
       return;
     }
@@ -100,11 +103,14 @@ export default function ProfileScreen() {
     if (uri) {
       updateProfile({ avatarUrl: uri });
     }
-  }
+  };
 
-    const handleSave = () => {
+  const handleSave = () => {
     if (!name.trim()) {
-      Alert.alert('Nom requis', 'Merci de renseigner un nom.');
+      Alert.alert(
+        t('profile.save.missingNameTitle'),
+        t('profile.save.missingNameMessage')
+      );
       return;
     }
 
@@ -117,9 +123,15 @@ export default function ProfileScreen() {
     });
 
     if (Platform.OS === 'android') {
-      ToastAndroid.show('Profil mis à jour ✅', ToastAndroid.SHORT);
+      ToastAndroid.show(
+        t('profile.save.successToast'),
+        ToastAndroid.SHORT
+      );
     } else {
-      Alert.alert('Profil mis à jour', 'Tes informations ont été enregistrées ✅');
+      Alert.alert(
+        t('profile.save.successTitle'),
+        t('profile.save.successMessage')
+      );
     }
   };
 
@@ -132,7 +144,7 @@ export default function ProfileScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Profil' }} />
+      <Stack.Screen options={{ title: t('profile.title') }} />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -154,25 +166,26 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.headerText}>
               <ThemedText type="title">
-                {profile.name || 'Mon profil'}
+                {profile.name || t('profile.header.defaultName')}
               </ThemedText>
               {profile.homeCountry && (
                 <ThemedText style={styles.headerSubtitle}>
-                  Basé·e en {profile.homeCountry}
+                  {t('profile.header.basedInPrefix')}{' '}
+                  {profile.homeCountry}
                 </ThemedText>
               )}
               <ThemedText
                 style={styles.changeAvatarLink}
                 onPress={handlePickAvatar}
               >
-                Changer la photo de profil
+                {t('profile.header.changeAvatar')}
               </ThemedText>
             </View>
           </View>
 
           {/* Stats voyages */}
           <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Statistiques de voyage
+            {t('profile.stats.title')}
           </ThemedText>
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
@@ -180,7 +193,7 @@ export default function ProfileScreen() {
                 {totalTrips}
               </ThemedText>
               <ThemedText style={styles.statLabel}>
-                Voyages
+                {t('profile.stats.trips')}
               </ThemedText>
             </View>
             <View style={styles.statCard}>
@@ -188,7 +201,7 @@ export default function ProfileScreen() {
                 {countriesVisited}
               </ThemedText>
               <ThemedText style={styles.statLabel}>
-                Pays visités
+                {t('profile.stats.countries')}
               </ThemedText>
             </View>
             <View style={styles.statCard}>
@@ -196,29 +209,31 @@ export default function ProfileScreen() {
                 {totalDays}
               </ThemedText>
               <ThemedText style={styles.statLabel}>
-                Jours en voyage
+                {t('profile.stats.days')}
               </ThemedText>
             </View>
           </View>
 
           <View style={styles.statsRow}>
             <ThemedText style={styles.chip}>
-              À venir : {upcomingTrips}
+              {t('profile.stats.upcoming')} : {upcomingTrips}
             </ThemedText>
             <ThemedText style={styles.chip}>
-              En cours : {ongoingTrips}
+              {t('profile.stats.ongoing')} : {ongoingTrips}
             </ThemedText>
             <ThemedText style={styles.chip}>
-              Terminés : {finishedTrips}
+              {t('profile.stats.finished')} : {finishedTrips}
             </ThemedText>
           </View>
 
           {/* Formulaire profil */}
           <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Informations personnelles
+            {t('profile.form.title')}
           </ThemedText>
 
-          <ThemedText>Nom affiché</ThemedText>
+          <ThemedText>
+            {t('profile.form.displayName')}
+          </ThemedText>
           <TextInput
             style={[
               styles.input,
@@ -226,11 +241,15 @@ export default function ProfileScreen() {
             ]}
             value={name}
             onChangeText={setName}
-            placeholder="Ton nom ou pseudo"
-            placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+            placeholder={t('profile.form.displayNamePlaceholder')}
+            placeholderTextColor={
+              isDark ? '#6B7280' : '#9CA3AF'
+            }
           />
 
-          <ThemedText>Email (optionnel)</ThemedText>
+          <ThemedText>
+            {t('profile.form.email')}
+          </ThemedText>
           <TextInput
             style={[
               styles.input,
@@ -240,11 +259,15 @@ export default function ProfileScreen() {
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
-            placeholder="email@example.com"
-            placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+            placeholder={t('profile.form.emailPlaceholder')}
+            placeholderTextColor={
+              isDark ? '#6B7280' : '#9CA3AF'
+            }
           />
 
-          <ThemedText>Ville (optionnel)</ThemedText>
+          <ThemedText>
+            {t('profile.form.city')}
+          </ThemedText>
           <TextInput
             style={[
               styles.input,
@@ -252,11 +275,15 @@ export default function ProfileScreen() {
             ]}
             value={homeCity}
             onChangeText={setHomeCity}
-            placeholder="Ta ville"
-            placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+            placeholder={t('profile.form.cityPlaceholder')}
+            placeholderTextColor={
+              isDark ? '#6B7280' : '#9CA3AF'
+            }
           />
 
-          <ThemedText>Pays (optionnel)</ThemedText>
+          <ThemedText>
+            {t('profile.form.country')}
+          </ThemedText>
           <TextInput
             style={[
               styles.input,
@@ -264,11 +291,15 @@ export default function ProfileScreen() {
             ]}
             value={homeCountry}
             onChangeText={setHomeCountry}
-            placeholder="Ton pays"
-            placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+            placeholder={t('profile.form.countryPlaceholder')}
+            placeholderTextColor={
+              isDark ? '#6B7280' : '#9CA3AF'
+            }
           />
 
-          <ThemedText>Bio (optionnel)</ThemedText>
+          <ThemedText>
+            {t('profile.form.bio')}
+          </ThemedText>
           <TextInput
             style={[
               styles.input,
@@ -277,13 +308,18 @@ export default function ProfileScreen() {
             ]}
             value={bio}
             onChangeText={setBio}
-            placeholder="Parle un peu de toi, de tes envies de voyages..."
-            placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+            placeholder={t('profile.form.bioPlaceholder')}
+            placeholderTextColor={
+              isDark ? '#6B7280' : '#9CA3AF'
+            }
             multiline
           />
 
           <View style={styles.saveButton}>
-            <Button title="Enregistrer le profil" onPress={handleSave} />
+            <Button
+              title={t('profile.form.saveButton')}
+              onPress={handleSave}
+            />
           </View>
         </ThemedView>
       </ScrollView>

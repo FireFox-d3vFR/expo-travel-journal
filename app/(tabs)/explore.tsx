@@ -1,11 +1,12 @@
-import React from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import React from 'react';
+import { ScrollView, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { Trip } from "@/constants/trips";
-import { useTrips } from "@/hooks/use-trips";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { Trip } from '@/constants/trips';
+import { useTrips } from '@/hooks/use-trips';
+import { useTranslation } from '@/hooks/use-translation';
 
 function getTripDurationInDays(trip: Trip): number {
   const start = new Date(trip.startDate);
@@ -17,10 +18,14 @@ function getTripDurationInDays(trip: Trip): number {
 
 export default function ExplorerScreen() {
   const { trips } = useTrips();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 
   const totalTrips = trips.length;
-  const totalDays = trips.reduce((sum, trip) => sum + getTripDurationInDays(trip), 0);
+  const totalDays = trips.reduce(
+    (sum, trip) => sum + getTripDurationInDays(trip),
+    0
+  );
 
   const today = new Date();
 
@@ -28,14 +33,19 @@ export default function ExplorerScreen() {
     (trip) => new Date(trip.startDate) > today
   );
 
-  const nextTrip = upcomingTrips.sort(
-    (a, b) =>
-      new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-  )[0];
+  const nextTrip = upcomingTrips
+    .slice()
+    .sort(
+      (a, b) =>
+        new Date(a.startDate).getTime() -
+        new Date(b.startDate).getTime()
+    )[0];
 
-  const longestTrip =
-    trips.slice().sort(
-      (a, b) => getTripDurationInDays(b) - getTripDurationInDays(a)
+  const longestTrip = trips
+    .slice()
+    .sort(
+      (a, b) =>
+        getTripDurationInDays(b) - getTripDurationInDays(a)
     )[0];
 
   return (
@@ -46,78 +56,100 @@ export default function ExplorerScreen() {
       ]}
     >
       <ThemedText type="title" style={styles.heading}>
-        Explorer
+        {t('explore.title')}
       </ThemedText>
 
       <ThemedText style={styles.subHeading}>
-        Un aperçu de tes aventures.
+        {t('explore.subtitle')}
       </ThemedText>
 
       {/* Stats principales */}
       <ThemedView style={styles.cardRow}>
         <ThemedView style={styles.statCard}>
-          <ThemedText type="subtitle">Voyages</ThemedText>
-          <ThemedText type="title">{totalTrips}</ThemedText>
+          <ThemedText type="subtitle">
+            {t('explore.stats.trips')}
+          </ThemedText>
+          <ThemedText type="title">
+            {totalTrips}
+          </ThemedText>
         </ThemedView>
 
         <ThemedView style={styles.statCard}>
-          <ThemedText type="subtitle">Jours en voyage</ThemedText>
-          <ThemedText type="title">{totalDays}</ThemedText>
+          <ThemedText type="subtitle">
+            {t('explore.stats.days')}
+          </ThemedText>
+          <ThemedText type="title">
+            {totalDays}
+          </ThemedText>
         </ThemedView>
       </ThemedView>
 
       {/* Prochain voyage */}
       <ThemedView style={styles.card}>
-        <ThemedText type="subtitle">Prochain voyage</ThemedText>
+        <ThemedText type="subtitle">
+          {t('explore.nextTrip.title')}
+        </ThemedText>
         {nextTrip ? (
           <>
             <ThemedText type="defaultSemiBold">
               {nextTrip.title}
             </ThemedText>
-            <ThemedText>{nextTrip.country}</ThemedText>
+            <ThemedText>
+              {nextTrip.country}
+            </ThemedText>
             <ThemedText style={styles.mutedText}>
               {nextTrip.startDate} → {nextTrip.endDate}
             </ThemedText>
           </>
         ) : (
           <ThemedText style={styles.mutedText}>
-            Aucun voyage à venir pour le moment.
+            {t('explore.nextTrip.none')}
           </ThemedText>
         )}
       </ThemedView>
 
       {/* Voyage le plus long */}
       <ThemedView style={styles.card}>
-        <ThemedText type="subtitle">Voyage le plus long</ThemedText>
+        <ThemedText type="subtitle">
+          {t('explore.longestTrip.title')}
+        </ThemedText>
         {longestTrip ? (
           <>
             <ThemedText type="defaultSemiBold">
               {longestTrip.title}
             </ThemedText>
-            <ThemedText>{longestTrip.country}</ThemedText>
+            <ThemedText>
+              {longestTrip.country}
+            </ThemedText>
             <ThemedText style={styles.mutedText}>
-              {getTripDurationInDays(longestTrip)} jours
+              {getTripDurationInDays(longestTrip)}{' '}
+              {t('explore.longestTrip.days')}
             </ThemedText>
           </>
         ) : (
           <ThemedText style={styles.mutedText}>
-            Ajoute un voyage pour voir cette statistique.
+            {t('explore.longestTrip.none')}
           </ThemedText>
         )}
       </ThemedView>
 
       {/* Petit résumé */}
       <ThemedView style={styles.card}>
-        <ThemedText type="subtitle">Résumé</ThemedText>
+        <ThemedText type="subtitle">
+          {t('explore.summary.title')}
+        </ThemedText>
+
         {totalTrips === 0 ? (
           <ThemedText>
-            Commence par ajouter ton premier voyage dans l’onglet
-            <ThemedText type="defaultSemiBold"> Voyages</ThemedText>.
+            {t('explore.summary.empty')}
           </ThemedText>
         ) : (
           <ThemedText>
-            Tu as déjà enregistré {totalTrips} voyage(s) pour un total de{' '}
-            {totalDays} jours sur les routes. Continue à explorer le monde !
+            {t('explore.summary.part1')}{' '}
+            {totalTrips}{' '}
+            {t('explore.summary.part2')}{' '}
+            {totalDays}{' '}
+            {t('explore.summary.part3')}
           </ThemedText>
         )}
       </ThemedView>

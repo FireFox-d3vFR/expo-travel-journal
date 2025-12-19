@@ -22,6 +22,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Activity } from '@/constants/trips';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTrips } from '@/hooks/use-trips';
+import { useTranslation } from '@/hooks/use-translation';
 
 const MOCK_PHOTOS = [
   {
@@ -78,9 +79,11 @@ function getActivityStatus(dateStr: string): ActivityStatus {
   return 'upcoming';
 }
 
-function formatActivityDay(dateStr: string): string {
+function formatActivityDay(dateStr: string, lang: string): string {
   const d = new Date(dateStr);
-  return d.toLocaleDateString('fr-FR', {
+  const locale = lang === 'en' ? 'en-US' : 'fr-FR';
+
+  return d.toLocaleDateString(locale, {
     weekday: 'long',
     day: '2-digit',
     month: 'long',
@@ -105,17 +108,6 @@ function getTripStatus(trip: { startDate: string; endDate: string }): TripStatus
   return 'current';
 }
 
-function getTripStatusLabel(status: TripStatus) {
-  switch (status) {
-    case 'past':
-      return 'Terminé';
-    case 'current':
-      return 'En cours';
-    case 'upcoming':
-      return 'À venir';
-  }
-}
-
 export default function TripDetailScreen() {
   const params = useLocalSearchParams();
   const tripId = params.id as string | undefined;
@@ -132,17 +124,25 @@ export default function TripDetailScreen() {
   } = useTrips();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { t, lang } = useTranslation();
 
   const trip = trips.find((t) => t.id === tripId);
   const notes = trip?.notes ?? [];
   const activities = trip?.activities ?? [];
 
-  // ✅ notes triées par date (la plus récente en haut)
-  const sortedNotes = [...notes].sort((a, b) =>
-    b.date.localeCompare(a.date)
-  );
+  // Notes triées par date (la plus récente en haut)
+  const sortedNotes = [...notes].sort((a, b) => b.date.localeCompare(a.date));
 
   const tripStatus = trip ? getTripStatus(trip) : null;
+
+  const tripStatusLabel =
+    tripStatus === 'past'
+      ? t('tripStatus.finished')
+      : tripStatus === 'current'
+      ? t('tripStatus.ongoing')
+      : tripStatus === 'upcoming'
+      ? t('tripStatus.upcoming')
+      : null;
 
   // Journal de bord
   const [noteText, setNoteText] = useState('');
@@ -192,8 +192,8 @@ export default function TripDetailScreen() {
 
     if (!dateStr || !text) {
       Alert.alert(
-        'Champs manquants',
-        'Merci de renseigner au minimum une date et un texte.'
+        t('trip.journal.errors.missingFields.title'),
+        t('trip.journal.errors.missingFields.message')
       );
       return;
     }
@@ -207,20 +207,16 @@ export default function TripDetailScreen() {
     setEditingNote(null);
   };
 
-  const handleDeleteNote = (note: {
-    id: string;
-    date: string;
-    text: string;
-  }) => {
+  const handleDeleteNote = (note: { id: string; date: string; text: string }) => {
     if (!trip) return;
 
     Alert.alert(
-      'Supprimer cette note ?',
+      t('trip.journal.delete.title'),
       `“${note.text.slice(0, 40)}${note.text.length > 40 ? '…' : ''}”`,
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.actions.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('common.actions.delete'),
           style: 'destructive',
           onPress: () => deleteTripNote(trip.id, note.id),
         },
@@ -258,8 +254,8 @@ export default function TripDetailScreen() {
 
     if (!activityTitle.trim() || !dateStr) {
       Alert.alert(
-        'Champs manquants',
-        'Merci de renseigner au minimum un titre et une date.'
+        t('trip.activities.errors.missingFields.title'),
+        t('trip.activities.errors.missingFields.message')
       );
       return;
     }
@@ -285,12 +281,14 @@ export default function TripDetailScreen() {
     if (!trip) return;
 
     Alert.alert(
-      'Supprimer cette activité ?',
-      `“${activity.title}” sera définitivement supprimée.`,
+      t('trip.activities.delete.title'),
+      `${t('trip.activities.delete.messagePrefix')} “${activity.title}” ${t(
+        'trip.activities.delete.messageSuffix'
+      )}`,
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.actions.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('common.actions.delete'),
           style: 'destructive',
           onPress: () => deleteActivity(trip.id, activity.id),
         },
@@ -299,12 +297,8 @@ export default function TripDetailScreen() {
   };
 
   const sortedActivities = [...activities].sort((a, b) => {
-    const aDate = new Date(
-      `${a.date}T${a.time ? a.time : '00:00'}`
-    ).getTime();
-    const bDate = new Date(
-      `${b.date}T${b.time ? b.time : '00:00'}`
-    ).getTime();
+    const aDate = new Date(`${a.date}T${a.time ? a.time : '00:00'}`).getTime();
+    const bDate = new Date(`${b.date}T${b.time ? b.time : '00:00'}`).getTime();
     return aDate - bDate;
   });
 
@@ -312,7 +306,7 @@ export default function TripDetailScreen() {
     { date: string; label: string; items: Activity[] }[]
   >((groups, activity) => {
     const existing = groups.find((g) => g.date === activity.date);
-    const label = formatActivityDay(activity.date);
+    const label = formatActivityDay(activity.date, lang);
 
     if (existing) {
       existing.items.push(activity);
@@ -322,12 +316,25 @@ export default function TripDetailScreen() {
     return groups;
   }, []);
 
+  const journalSummaryText =
+    sortedNotes.length === 0
+      ? ''
+      : sortedNotes.length === 1
+      ? t('trip.journal.summary.one')
+      : t('trip.journal.summary.other').replace(
+          '{count}',
+          String(sortedNotes.length)
+        );
+
   return (
     <>
-      <Stack.Screen options={{ title: trip ? trip.title : 'Voyage' }} />
+      <Stack.Screen
+        options={{ title: trip ? trip.title : t('trip.detail.fallbackTitle') }}
+      />
+
       {!trip ? (
         <ThemedView style={styles.container}>
-          <ThemedText>Voyage introuvable.</ThemedText>
+          <ThemedText>{t('trip.detail.notFound')}</ThemedText>
         </ThemedView>
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -336,10 +343,7 @@ export default function TripDetailScreen() {
             <View style={styles.tripDetailHeaderRow}>
               <ThemedText type="title">{trip.title}</ThemedText>
 
-              <Pressable
-                hitSlop={8}
-                onPress={() => toggleFavorite(trip.id)}
-              >
+              <Pressable hitSlop={8} onPress={() => toggleFavorite(trip.id)}>
                 <ThemedText
                   style={[
                     styles.favoriteIcon,
@@ -354,7 +358,7 @@ export default function TripDetailScreen() {
             <View style={styles.detailMetaRow}>
               <ThemedText style={styles.country}>📍 {trip.country}</ThemedText>
 
-              {tripStatus && (
+              {tripStatus && tripStatusLabel && (
                 <View
                   style={[
                     styles.statusBadge,
@@ -364,7 +368,7 @@ export default function TripDetailScreen() {
                   ]}
                 >
                   <ThemedText style={styles.statusBadgeText}>
-                    {getTripStatusLabel(tripStatus)}
+                    {tripStatusLabel}
                   </ThemedText>
                 </View>
               )}
@@ -372,7 +376,9 @@ export default function TripDetailScreen() {
 
             {trip.cities && trip.cities.length > 0 && (
               <View style={styles.citiesSection}>
-                <ThemedText style={styles.citiesLabel}>Étapes</ThemedText>
+                <ThemedText style={styles.citiesLabel}>
+                  {t('trip.detail.citiesLabel')}
+                </ThemedText>
                 <View style={styles.citiesContainer}>
                   {trip.cities.map((city) => (
                     <View key={city} style={styles.cityChip}>
@@ -389,7 +395,7 @@ export default function TripDetailScreen() {
 
             {/* Photos */}
             <ThemedText type="subtitle" style={styles.sectionTitle}>
-              📷 Photos
+              📷 {t('trip.detail.photosTitle')}
             </ThemedText>
             <FlatList
               data={MOCK_PHOTOS}
@@ -406,16 +412,19 @@ export default function TripDetailScreen() {
 
             {/* Activités */}
             <View style={styles.sectionHeaderRow}>
-              <ThemedText type="subtitle">📆 Activités</ThemedText>
+              <ThemedText type="subtitle">
+                📆 {t('trip.activities.title')}
+              </ThemedText>
               <Pressable onPress={openCreateActivity}>
-                <ThemedText type="link"> Ajouter</ThemedText>
+                <ThemedText type="link">
+                  {t('trip.activities.actions.add')}
+                </ThemedText>
               </Pressable>
             </View>
 
             {groupedActivities.length === 0 ? (
               <ThemedText style={styles.emptyText}>
-                Aucune activité pour le moment. Ajoute la première étape de ton
-                voyage !
+                {t('trip.activities.empty')}
               </ThemedText>
             ) : (
               groupedActivities.map((group) => (
@@ -426,6 +435,13 @@ export default function TripDetailScreen() {
 
                   {group.items.map((activity) => {
                     const status = getActivityStatus(activity.date);
+
+                    const statusLabel =
+                      status === 'today'
+                        ? t('activityStatus.today')
+                        : status === 'upcoming'
+                        ? t('activityStatus.upcoming')
+                        : t('activityStatus.past');
 
                     return (
                       <ThemedView key={activity.id} style={styles.activityCard}>
@@ -447,11 +463,7 @@ export default function TripDetailScreen() {
                             ]}
                           >
                             <ThemedText style={styles.activityStatusText}>
-                              {status === 'today'
-                                ? "Aujourd'hui"
-                                : status === 'upcoming'
-                                ? 'À venir'
-                                : 'Passé'}
+                              {statusLabel}
                             </ThemedText>
                           </View>
                         </View>
@@ -477,7 +489,7 @@ export default function TripDetailScreen() {
                             style={styles.activityAction}
                           >
                             <ThemedText style={styles.activityActionText}>
-                              ✏️ Modifier
+                              ✏️ {t('trip.activities.actions.edit')}
                             </ThemedText>
                           </Pressable>
                           <Pressable
@@ -485,7 +497,7 @@ export default function TripDetailScreen() {
                             style={styles.activityAction}
                           >
                             <ThemedText style={styles.activityDeleteText}>
-                              🗑 Supprimer
+                              🗑 {t('trip.activities.actions.delete')}
                             </ThemedText>
                           </Pressable>
                         </View>
@@ -498,21 +510,18 @@ export default function TripDetailScreen() {
 
             {/* Journal de bord */}
             <ThemedText type="subtitle" style={styles.sectionTitle}>
-              📒 Journal de bord
+              📒 {t('trip.journal.title')}
             </ThemedText>
 
-            {sortedNotes.length > 0 && (
+            {journalSummaryText ? (
               <ThemedText style={styles.journalSummary}>
-                {sortedNotes.length} note
-                {sortedNotes.length > 1 ? 's' : ''} enregistrée
-                {sortedNotes.length > 1 ? 's' : ''}
+                {journalSummaryText}
               </ThemedText>
-            )}
+            ) : null}
 
             {sortedNotes.length === 0 ? (
               <ThemedText style={styles.emptyText}>
-                Aucune note pour le moment. Ajoute ta première impression de
-                voyage !
+                {t('trip.journal.empty')}
               </ThemedText>
             ) : (
               sortedNotes.map((note) => (
@@ -526,7 +535,7 @@ export default function TripDetailScreen() {
                       style={styles.activityAction}
                     >
                       <ThemedText style={styles.activityActionText}>
-                        ✏️ Modifier
+                        ✏️ {t('trip.journal.actions.edit')}
                       </ThemedText>
                     </Pressable>
                     <Pressable
@@ -534,7 +543,7 @@ export default function TripDetailScreen() {
                       style={styles.activityAction}
                     >
                       <ThemedText style={styles.activityDeleteText}>
-                        🗑 Supprimer
+                        🗑 {t('trip.journal.actions.delete')}
                       </ThemedText>
                     </Pressable>
                   </View>
@@ -544,7 +553,7 @@ export default function TripDetailScreen() {
 
             {/* Formulaire nouvelle note */}
             <ThemedText style={styles.addNoteLabel}>
-              Ajouter une note
+              {t('trip.journal.addLabel')}
             </ThemedText>
             <TextInput
               style={[
@@ -553,13 +562,16 @@ export default function TripDetailScreen() {
                 isDark && styles.inputDark,
                 isDark && styles.textInputDark,
               ]}
-              placeholder="Raconte ta journée..."
+              placeholder={t('trip.journal.placeholder')}
               placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
               value={noteText}
               onChangeText={setNoteText}
               multiline
             />
-            <Button title="Enregistrer la note" onPress={handleAddNote} />
+            <Button
+              title={t('trip.journal.actions.save')}
+              onPress={handleAddNote}
+            />
           </ThemedView>
         </ScrollView>
       )}
@@ -572,16 +584,18 @@ export default function TripDetailScreen() {
       >
         <ThemedView style={styles.modalContainer}>
           <ThemedText type="title" style={styles.modalTitle}>
-            {editingActivity ? 'Modifier une activité' : 'Nouvelle activité'}
+            {editingActivity
+              ? t('trip.activities.modal.editTitle')
+              : t('trip.activities.modal.createTitle')}
           </ThemedText>
 
           {trip && (
             <ThemedText style={styles.modalSubtitle}>
-              Pour le voyage : {trip.title}
+              {t('trip.activities.modal.forTripPrefix')} {trip.title}
             </ThemedText>
           )}
 
-          <ThemedText>Titre</ThemedText>
+          <ThemedText>{t('trip.activities.form.title')}</ThemedText>
           <TextInput
             style={[
               styles.input,
@@ -591,11 +605,11 @@ export default function TripDetailScreen() {
             ]}
             value={activityTitle}
             onChangeText={setActivityTitle}
-            placeholder="Visite du musée..."
+            placeholder={t('trip.activities.form.titlePlaceholder')}
             placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
           />
 
-          <ThemedText>Date</ThemedText>
+          <ThemedText>{t('trip.activities.form.date')}</ThemedText>
           <Pressable
             onPress={() => setShowActivityDatePicker(true)}
             style={[styles.input, isDark && styles.inputDark]}
@@ -603,7 +617,7 @@ export default function TripDetailScreen() {
             <ThemedText>
               {activityDate
                 ? formatDate(activityDate)
-                : 'Sélectionner une date'}
+                : t('trip.activities.form.datePlaceholder')}
             </ThemedText>
           </Pressable>
           {showActivityDatePicker && (
@@ -620,7 +634,7 @@ export default function TripDetailScreen() {
             />
           )}
 
-          <ThemedText>Heure (optionnel)</ThemedText>
+          <ThemedText>{t('trip.activities.form.timeOptional')}</ThemedText>
           <Pressable
             onPress={() => setShowActivityTimePicker(true)}
             style={[styles.input, isDark && styles.inputDark]}
@@ -628,7 +642,7 @@ export default function TripDetailScreen() {
             <ThemedText>
               {activityTime
                 ? formatTime(activityTime)
-                : 'Sélectionner une heure'}
+                : t('trip.activities.form.timePlaceholder')}
             </ThemedText>
           </Pressable>
           {showActivityTimePicker && (
@@ -643,7 +657,7 @@ export default function TripDetailScreen() {
             />
           )}
 
-          <ThemedText>Lieu (optionnel)</ThemedText>
+          <ThemedText>{t('trip.activities.form.locationOptional')}</ThemedText>
           <TextInput
             style={[
               styles.input,
@@ -653,11 +667,11 @@ export default function TripDetailScreen() {
             ]}
             value={activityLocation}
             onChangeText={setActivityLocation}
-            placeholder="Ville, lieu précis..."
+            placeholder={t('trip.activities.form.locationPlaceholder')}
             placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
           />
 
-          <ThemedText>Description (optionnel)</ThemedText>
+          <ThemedText>{t('trip.activities.form.descriptionOptional')}</ThemedText>
           <TextInput
             style={[
               styles.input,
@@ -668,18 +682,22 @@ export default function TripDetailScreen() {
             ]}
             value={activityDescription}
             onChangeText={setActivityDescription}
-            placeholder="Détails sur l’activité..."
+            placeholder={t('trip.activities.form.descriptionPlaceholder')}
             placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
             multiline
           />
 
           <View style={styles.modalButtonsRow}>
             <Button
-              title="Annuler"
+              title={t('common.actions.cancel')}
               onPress={() => setActivityModalVisible(false)}
             />
             <Button
-              title={editingActivity ? 'Enregistrer' : 'Ajouter'}
+              title={
+                editingActivity
+                  ? t('trip.activities.actions.save')
+                  : t('trip.activities.actions.add')
+              }
               onPress={handleSaveActivity}
             />
           </View>
@@ -697,16 +715,16 @@ export default function TripDetailScreen() {
       >
         <ThemedView style={styles.modalContainer}>
           <ThemedText type="title" style={styles.modalTitle}>
-            Modifier une note
+            {t('trip.journal.modal.editTitle')}
           </ThemedText>
 
           {trip && (
             <ThemedText style={styles.modalSubtitle}>
-              Pour le voyage : {trip.title}
+              {t('trip.journal.modal.forTripPrefix')} {trip.title}
             </ThemedText>
           )}
 
-          <ThemedText>Date</ThemedText>
+          <ThemedText>{t('trip.journal.form.date')}</ThemedText>
           <Pressable
             onPress={() => setShowNoteDatePicker(true)}
             style={[styles.input, isDark && styles.inputDark]}
@@ -714,7 +732,7 @@ export default function TripDetailScreen() {
             <ThemedText>
               {noteFormDate
                 ? formatDate(noteFormDate)
-                : 'Sélectionner une date'}
+                : t('trip.journal.form.datePlaceholder')}
             </ThemedText>
           </Pressable>
           {showNoteDatePicker && (
@@ -731,7 +749,7 @@ export default function TripDetailScreen() {
             />
           )}
 
-          <ThemedText>Texte</ThemedText>
+          <ThemedText>{t('trip.journal.form.text')}</ThemedText>
           <TextInput
             style={[
               styles.input,
@@ -742,20 +760,23 @@ export default function TripDetailScreen() {
             ]}
             value={noteFormText}
             onChangeText={setNoteFormText}
-            placeholder="Raconte ta journée..."
+            placeholder={t('trip.journal.placeholder')}
             placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
             multiline
           />
 
           <View style={styles.modalButtonsRow}>
             <Button
-              title="Annuler"
+              title={t('common.actions.cancel')}
               onPress={() => {
                 setNoteModalVisible(false);
                 setEditingNote(null);
               }}
             />
-            <Button title="Enregistrer" onPress={handleSaveNoteEdit} />
+            <Button
+              title={t('trip.journal.actions.save')}
+              onPress={handleSaveNoteEdit}
+            />
           </View>
         </ThemedView>
       </Modal>
