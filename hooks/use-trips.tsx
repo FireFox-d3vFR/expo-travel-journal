@@ -19,6 +19,7 @@ type TripsContextType = {
   ) => void;
   deleteActivity: (tripId: string, activityId: string) => void;
   toggleFavorite: (tripId: string) => void;
+  deleteTrip: (tripId: string) => void; // 👈 nouveau
 };
 
 const TripsContext = createContext<TripsContextType | undefined>(undefined);
@@ -146,6 +147,11 @@ export function TripsProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  // 👇 nouvelle fonction : suppression complète d’un voyage
+  const deleteTrip = (tripId: string) => {
+    setTrips((prev) => prev.filter((trip) => trip.id !== tripId));
+  };
+
   return (
     <TripsContext.Provider
       value={{
@@ -158,6 +164,7 @@ export function TripsProvider({ children }: { children: React.ReactNode }) {
         updateActivity,
         deleteActivity,
         toggleFavorite,
+        deleteTrip, // 👈 on l’expose ici
       }}
     >
       {children}

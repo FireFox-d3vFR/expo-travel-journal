@@ -1,7 +1,7 @@
 import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, router } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Alert,
@@ -122,6 +122,7 @@ export default function TripDetailScreen() {
     updateActivity,
     deleteActivity,
     toggleFavorite,
+    deleteTrip,              // 👈 on récupère la fonction de suppression
   } = useTrips();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -327,7 +328,7 @@ export default function TripDetailScreen() {
           String(sortedNotes.length)
         );
 
-    const handleShareTrip = async () => {
+  const handleShareTrip = async () => {
     if (!trip) return;
 
     try {
@@ -340,6 +341,27 @@ export default function TripDetailScreen() {
         "Impossible de partager le voyage pour le moment."
       );
     }
+  };
+
+  // 👇 NOUVEAU : suppression du voyage
+  const handleDeleteTrip = () => {
+    if (!trip) return;
+
+    Alert.alert(
+      t('trip.detail.delete.title'),
+      t('trip.detail.delete.message'),
+      [
+        { text: t('common.actions.cancel'), style: 'cancel' },
+        {
+          text: t('common.actions.delete'),
+          style: 'destructive',
+          onPress: () => {
+            deleteTrip(trip.id);
+            router.replace('/'); // retour à la liste
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -367,11 +389,13 @@ export default function TripDetailScreen() {
                   style={styles.shareButton}
                 >
                   <ThemedText style={styles.shareButtonText}>
-                    Partager
+                    {t('trip.detail.shareButton')}
                   </ThemedText>
                 </Pressable>
-                <Pressable 
-                  hitSlop={8} 
+
+                {/* Favori */}
+                <Pressable
+                  hitSlop={8}
                   onPress={() => toggleFavorite(trip.id)}
                 >
                   <ThemedText
@@ -603,6 +627,15 @@ export default function TripDetailScreen() {
               title={t('trip.journal.actions.save')}
               onPress={handleAddNote}
             />
+
+            {/* 👇 Bouton de suppression du voyage */}
+            <View style={styles.deleteTripContainer}>
+              <Pressable onPress={handleDeleteTrip}>
+                <ThemedText style={styles.deleteTripText}>
+                  🗑 {t('trip.detail.delete.button')}
+                </ThemedText>
+              </Pressable>
+            </View>
           </ThemedView>
         </ScrollView>
       )}
@@ -1057,7 +1090,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     marginBottom: 8,
   },
-    tripHeaderActions: {
+  tripHeaderActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -1069,5 +1102,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textDecorationLine: 'underline',
     opacity: 0.8,
+  },
+  deleteTripContainer: {
+    marginTop: 24,
+    alignItems: 'center',
+  },
+  deleteTripText: {
+    fontSize: 13,
+    color: '#f97373',
+    textDecorationLine: 'underline',
   },
 });

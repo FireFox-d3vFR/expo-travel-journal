@@ -206,6 +206,13 @@ const translations = {
     'profile.save.successTitle': 'Profil mis à jour',
     'profile.save.successMessage': 'Tes informations ont été enregistrées ✅',
     'profile.save.successToast': 'Profil mis à jour ✅',
+
+    'trip.detail.shareButton': 'Partager',
+
+    'trip.detail.delete.title': 'Supprimer ce voyage ?',
+    'trip.detail.delete.message':
+      'Ce voyage et toutes ses données (activités, notes) seront définitivement supprimés.',
+    'trip.detail.delete.button': 'Supprimer ce voyage',
   },
 
   en: {
@@ -411,6 +418,14 @@ const translations = {
     'profile.save.successTitle': 'Profile updated',
     'profile.save.successMessage': 'Your information has been saved ✅',
     'profile.save.successToast': 'Profile updated ✅',
+
+    'trip.detail.shareButton': 'Share',
+
+    'trip.detail.delete.title': 'Delete this trip?',
+    'trip.detail.delete.message':
+      'This trip and all its data (activities, notes) will be permanently deleted.',
+    'trip.detail.delete.button': 'Delete this trip',
+
   },
 } as const;
 
